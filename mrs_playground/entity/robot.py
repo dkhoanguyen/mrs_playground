@@ -14,16 +14,13 @@ class Robot(Entity):
                  velocity: np.ndarray,
                  sensing_range: float,
                  comms_range: float,
-                 min_v: float,
                  max_v: float,
                  max_a: float):
         super().__init__(
             pose=pose,
             velocity=velocity,
-            image_path='leader-boid.png',
-            min_v=min_v,
-            max_v=max_v)
-
+            image_path='leader-boid.png')
+        self._id = id
         self._max_v = max_v
         self._max_a = max_a
 
@@ -34,6 +31,8 @@ class Robot(Entity):
         self._font = pygame.font.SysFont("comicsans", 16)
         self._text = None
 
+        self._behavior_state = None
+
     def __str__(self):
         return "robot"
 
@@ -41,19 +40,17 @@ class Robot(Entity):
         dt = kwargs["dt"]
         # Behavior tree should be here
         events = kwargs["events"]
-        ids = kwargs["ids"]
 
         all_states = kwargs["entity_states"]
-        all_animal_states = all_states["herd"]
         all_robot_states = all_states["robot"]
 
         # Check which robot is within vision
         robot_in_range = np.empty((0, 6))
-        animal_in_range = self._get_state_within_sensing(self._sensing_range,
-                                                         )
+        # animal_in_range = self._get_state_within_sensing(self._sensing_range,
+        #                                                  )
 
     def display(self, screen: pygame.Surface, debug=False):
-        if self._behaviors[str(self._behavior_state)]:
+        if self._behavior_state and self._behaviors[str(self._behavior_state)]:
             self._behaviors[str(self._behavior_state)].display(screen)
 
         if self._text:

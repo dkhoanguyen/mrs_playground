@@ -14,11 +14,13 @@ from mrs_playground.common.behavior import Behavior
 class SimplePlayground(object):
     def __init__(self,
                  entity_names: list,
+                 dt: float,
                  render: bool = True,
                  multi_threaded: bool = False,
                  save_to_file: bool = True,
                  save_path: str = "data/"):
 
+        self._dt = dt
         self._multi_threaded = multi_threaded
         self._render = render
         self._save_to_file = save_to_file
@@ -84,7 +86,8 @@ class SimplePlayground(object):
         if not self._multi_threaded:
             for entity in self._entities["robot"]:
                 entity.update(events=events,
-                              entity_states=all_states)
+                              entity_states=all_states,
+                              dt=self._dt)
 
     def render(self):
         if self._render:

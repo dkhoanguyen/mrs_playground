@@ -4,7 +4,7 @@ from typing import Dict
 
 import pygame
 import numpy as np
-from enum import Enum
+from mrs_playground.params import params
 from abc import ABC, abstractmethod
 
 from mrs_playground.common.behavior import Behavior
@@ -23,18 +23,19 @@ class Entity(pygame.sprite.Sprite, ABC):
 
         # Pygame setup
         self._image_path = image_path
-        self.base_image = pygame.image.load(self._image_path)
+        self.base_image = pygame.image.load(
+            f"{params.IMG_DIR}/{self._image_path}")
         self.rect = self.base_image.get_rect()
         self.image = self.base_image
 
         self._pose = pose
         self._velocity = velocity
-        self._acceleration = np.zeros(0,0)
+        self._acceleration = np.zeros(2)
 
         angle = -np.rad2deg(np.angle(velocity[0] + 1j * velocity[1]))
         self._heading = np.deg2rad(angle)
 
-        self._behaviors: Dict[str,Behavior] = {}
+        self._behaviors: Dict[str, Behavior] = {}
 
     @property
     def pose(self):
@@ -76,6 +77,5 @@ class Entity(pygame.sprite.Sprite, ABC):
         self.image = pygame.transform.rotate(self.base_image, angle)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-    def display(self, screen: pygame.Surface):
+    def display(self, screen: pygame.Surface, debug: bool = False):
         screen.blit(self.image, self.rect)
-    
