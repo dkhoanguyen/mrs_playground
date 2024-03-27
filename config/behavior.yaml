@@ -1,0 +1,16 @@
+behavior:
+  math_flock:
+    params:
+      follow_cursor: false
+      sensing_range: 40
+      danger_range: 60
+      initial_consensus: [800, 350]
+      max_v: 3
+    constants:
+      c1_alpha: 3
+      c1_beta: 20
+      c1_gamma: 5
+      c1_delta: 20
+
+  decentralised_herding_cbf:
+    

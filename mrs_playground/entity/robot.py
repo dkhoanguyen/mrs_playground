@@ -2,7 +2,6 @@
 
 import pygame
 import numpy as np
-from spatialmath.base import *
 
 from mrs_playground.common.entity import Entity
 
@@ -20,6 +19,7 @@ class Robot(Entity):
             pose=pose,
             velocity=velocity,
             image_path='leader-boid.png')
+
         self._id = id
         self._max_v = max_v
         self._max_a = max_a
@@ -37,33 +37,36 @@ class Robot(Entity):
         return "robot"
 
     def update(self, *args, **kwargs):
-        dt = kwargs["dt"]
         # Behavior tree should be here
         events = kwargs["events"]
 
-        all_states = kwargs["entity_states"]
-        all_robot_states = all_states["robot"]
-
         # Check which robot is within vision
-        robot_in_range = np.empty((0, 6))
-        # animal_in_range = self._get_state_within_sensing(self._sensing_range,
-        #                                                  )
+        robot_in_range = self._sensing.sense(state=self.state, target="robot")
+        u_t = np.zeros(2)
+        # # Calculate control
+        # self._behavior_state = "cbf"
+        # u_t = self._behaviors[str(self._behavior_state)].update(
+        #     state=self.state,
+        #     other_states=robot_in_range,
+        #     animals_states=None)
+
+        # State include position and velocity
+        x_t = self.state[:4]
+        x_t_1 = self._dynamic.step(x_t=x_t, u_t=u_t)
+
+        # Update state
+        self._acceleration = u_t
+        self._velocity = x_t_1[2:4]
+        self._pose = x_t_1[0:2]
 
     def display(self, screen: pygame.Surface, debug=False):
         if self._behavior_state and self._behaviors[str(self._behavior_state)]:
             self._behaviors[str(self._behavior_state)].display(screen)
 
         if self._text:
-            screen.blit(self._text, tuple(self.pose - np.array([20, 20])))
+            screen.blit(self._text, tuple(self._pose - np.array([20, 20])))
 
+        # Update graphics accordingly
+        self._move(self._velocity)
+        self._text = self._font.render(str(self._id), 1, pygame.Color("white"))
         return super().display(screen, debug)
-
-    def _get_state_within_sensing(self, sensing_range: float,
-                                  state: np.ndarray, states: np.ndarray):
-        state_in_range = np.empty((0, 6))
-        for idx in range(states.shape[0]):
-            d = np.linalg.norm(state[:2] - states[idx, :2])
-            if d > 0.0 and d <= sensing_range:
-                state_in_range = np.vstack(
-                    (state_in_range, states[idx, :]))
-        return state_in_range

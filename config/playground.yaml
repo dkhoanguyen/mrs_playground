@@ -1,0 +1,6 @@
+entity_names: ["robot", "animal"]
+dt: 0.05
+render: True
+multi_threaded: False
+save_to_file: False
+save_path: "data/"

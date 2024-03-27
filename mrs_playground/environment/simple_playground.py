@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-import time
-import pickle
+from typing import Dict, List
+
 import pygame
 import numpy as np
 
@@ -9,6 +9,7 @@ from mrs_playground.params import params
 
 from mrs_playground.common.entity import Entity
 from mrs_playground.common.behavior import Behavior
+from mrs_playground.common.sensing import SensingModel
 
 
 class SimplePlayground(object):
@@ -34,10 +35,11 @@ class SimplePlayground(object):
             self._clock = pygame.time.Clock()
         self._running = True
 
-        self._entities = {}
-        self._behaviors = []
+        self._entities: Dict[str, List[Entity]] = {}
+        self._behaviors: List[Behavior] = []
+        self._sensing_model: List[SensingModel] = []
 
-        self._entity_names = entity_names
+        self._entity_names: List[str] = entity_names
 
         for entity_name in self._entity_names:
             self._entities[entity_name] = []
@@ -53,6 +55,9 @@ class SimplePlayground(object):
 
     def add_behaviour(self, behavior: Behavior):
         self._behaviors.append(behavior)
+    
+    def add_sensing_models(self, sensing_model: SensingModel):
+        self._sensing_model.append(sensing_model)
 
     def display(self):
         entity: Entity
@@ -63,7 +68,7 @@ class SimplePlayground(object):
         for behavior in self._behaviors:
             behavior.display(self._screen)
 
-    def run_once(self):
+    def step(self):
         events = pygame.event.get()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -77,17 +82,18 @@ class SimplePlayground(object):
         all_states = {}
         for entity_type in self._entities.keys():
             all_states[entity_type] = np.empty((0, 6))
-            entity: Entity
             for entity in self._entities[entity_type]:
                 all_states[entity_type] = np.vstack(
                     (all_states[entity_type], entity.state))
+                
+        # Delegate all states to sensors, ie sensors are "sensing" the environment
+        for sensing_model in self._sensing_model:
+            sensing_model.update(all_states=all_states)
 
-        entity: Entity
-        if not self._multi_threaded:
-            for entity in self._entities["robot"]:
-                entity.update(events=events,
-                              entity_states=all_states,
-                              dt=self._dt)
+        # Update all entities
+        for entity_type in self._entities.keys():
+            for entity in self._entities[entity_type]:
+                entity.update(events=events)
 
     def render(self):
         if self._render:

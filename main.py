@@ -1,26 +1,81 @@
 #!/usr/bin/python3
 
-import numpy as np
+import os
+import yaml
 
+from mrs_playground.entity.animal import Animal
 from mrs_playground.entity.robot import Robot
 
+from mrs_playground.dynamic.point_mass_system import DoubleIntegrator
+from mrs_playground.sensing.radius_sensing import RadiusSensing
+
+from mrs_playground.behavior.mathematical_flock import MathematicalFlock
+
 from mrs_playground.environment.simple_playground import SimplePlayground
+from mrs_playground.environment.playground_factory import PlaygroundFactory
+
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_DIR = os.path.join(PROJECT_DIR, 'config')
 
 
 def main():
-    robot = Robot(id=0,
-                  pose=np.array([300, 300]),
-                  velocity=np.array([10, 0]),
-                  sensing_range=100.0,
-                  comms_range=100.0,
-                  max_v=10.0,
-                  max_a=5.0)
-    env = SimplePlayground(dt=0.05,entity_names=["robot"])
-    env.add_entity(robot)
+
+    entity_config_file = os.path.join(CONFIG_DIR, 'entity.yaml')
+    with open(entity_config_file, 'r') as file:
+        entity_config = yaml.safe_load(file)
+
+    env_config_file = os.path.join(CONFIG_DIR, 'playground.yaml')
+    with open(env_config_file, 'r') as file:
+        env_config = yaml.safe_load(file)
+
+    behaviour_config_file = os.path.join(CONFIG_DIR, 'playground.yaml')
+    with open(behaviour_config_file, 'r') as file:
+        behavior_config = yaml.safe_load(file)
+
+    sensing_config_file = os.path.join(CONFIG_DIR, 'sensing_model.yaml')
+    with open(sensing_config_file, 'r') as file:
+        sensing_config = yaml.safe_load(file)
+
+    dynamic_config_file = os.path.join(CONFIG_DIR, 'dynamic_model.yaml')
+    with open(dynamic_config_file, 'r') as file:
+        dynamic_config = yaml.safe_load(file)
+
+    # Spawn animals
+    animals = PlaygroundFactory.spawn_entities(entity_config['animal'], Animal)
+
+    # Spawn robots
+    robots = PlaygroundFactory.spawn_entities(entity_config['robot'], Robot)
+
+    # Add sensors and dynamics to robots
+    sensors = PlaygroundFactory.add_sensing(entities=robots,
+                                            config=sensing_config,
+                                            sensing_type=RadiusSensing)
+    PlaygroundFactory.add_dynamic(entities=robots,
+                                  config=dynamic_config,
+                                  dynamic_type=DoubleIntegrator)
+    # # Add behavior as well
+    # PlaygroundFactory.add_behavior(entities=robots,
+    #                                config=behavior_config,
+    #                                behavior_type=Dece,
+    #                                behavior_name="cbf")
+
+    # Create environment
+    env = SimplePlayground(**env_config)
+
+    # Add entities to env
+    for animal in animals:
+        env.add_entity(animal)
+    for robot in robots:
+        env.add_entity(robot)
+
+    # Add sensor
+    for sensor in sensors:
+        env.add_sensing_models(sensor)
 
     while env.ok:
-        env.run_once()
+        env.step()
         env.render()
-    
+
+
 if __name__ == '__main__':
     main()
