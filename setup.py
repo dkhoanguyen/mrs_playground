@@ -2,8 +2,8 @@ import setuptools
 
 packages = setuptools.find_packages(".")
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+# with open("README.md", "r") as fh:
+#     long_description = fh.read()
 
 setuptools.setup(
     name="mrs_playground",
