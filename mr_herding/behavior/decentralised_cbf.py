@@ -24,7 +24,7 @@ class DecentralisedCBF(Behavior):
 
     def update(self, state: np.ndarray,
                other_states: np.ndarray,
-               animals_states: np.ndarray):
+               animal_states: np.ndarray):
         pose = state[:2]
         self._pose = pose
         velocity = state[2:4]
@@ -109,10 +109,3 @@ class DecentralisedCBF(Behavior):
             screen, pygame.Color("yellow"),
             tuple(self._pose), tuple(self._pose + 5 * (self._u)))
         return super().display(screen)
-
-    def transition(self, state: np.ndarray,
-                   other_states: np.ndarray,
-                   herd_states: np.ndarray,
-                   consensus_states: dict):
-
-        return True

@@ -133,7 +133,7 @@ class MathematicalFlock(Behavior):
         self._animals.append(animal)
 
     # Robot
-    def add_shepherd(self, robot: Robot):
+    def add_robot(self, robot: Robot):
         self._robots.append(robot)
 
     # # Obstacle
@@ -199,7 +199,7 @@ class MathematicalFlock(Behavior):
             qi = animal_states[idx, :2]
             u_pred = self._predator_avoidance_term(
                 si=qi, r=self._danger_range, k=4)
-            avoidance_v[idx, 2:4] += (u_pred + 5 * self._densities[idx, :]
+            avoidance_v[idx, :] += (u_pred + 5 * self._densities[idx, :]
                                       * np.linalg.norm(utils.unit_vector(u_pred)))
 
         # x_t = animal_states[:,:4]
@@ -212,8 +212,8 @@ class MathematicalFlock(Behavior):
         animal: Animal
         for idx, animal in enumerate(self._animals):
             # Scale velocity
-            if np.linalg.norm(animal_states[idx, 2:4]) > animal._max_v:
-                animal_states[idx, 2:4] = animal._max_v * \
+            if np.linalg.norm(animal_states[idx, 2:4]) > self._max_v:
+                animal_states[idx, 2:4] = self._max_v * \
                     utils.unit_vector(animal_states[idx, 2:4])
 
             animal._velocity = animal_states[idx, 2:4]

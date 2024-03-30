@@ -6,13 +6,15 @@ import yaml
 from mrs_playground.entity.animal import Animal
 from mrs_playground.entity.robot import Robot
 
-from mrs_playground.dynamic.point_mass_system import DoubleIntegrator
+from mrs_playground.dynamic.point_mass_system import *
 from mrs_playground.sensing.radius_sensing import RadiusSensing
 
 from mrs_playground.behavior.mathematical_flock import MathematicalFlock
 
 from mrs_playground.environment.simple_playground import SimplePlayground
 from mrs_playground.environment.playground_factory import PlaygroundFactory
+
+from mr_herding.behavior.decentralised_apf import DecentralisedAPF
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.join(PROJECT_DIR, 'config')
@@ -28,7 +30,7 @@ def main():
     with open(env_config_file, 'r') as file:
         env_config = yaml.safe_load(file)
 
-    behaviour_config_file = os.path.join(CONFIG_DIR, 'playground.yaml')
+    behaviour_config_file = os.path.join(CONFIG_DIR, 'behavior.yaml')
     with open(behaviour_config_file, 'r') as file:
         behavior_config = yaml.safe_load(file)
 
@@ -43,6 +45,12 @@ def main():
     # Spawn animals
     animals = PlaygroundFactory.spawn_entities(entity_config['animal'], Animal)
 
+    # Animal flocking behavior
+    math_flock_config = behavior_config['math_flock']
+    math_flock = MathematicalFlock(**math_flock_config['params'])
+    for animal in animals:
+        math_flock.add_animal(animal)
+
     # Spawn robots
     robots = PlaygroundFactory.spawn_entities(entity_config['robot'], Robot)
 
@@ -52,12 +60,12 @@ def main():
                                             sensing_type=RadiusSensing)
     PlaygroundFactory.add_dynamic(entities=robots,
                                   config=dynamic_config,
-                                  dynamic_type=DoubleIntegrator)
-    # # Add behavior as well
-    # PlaygroundFactory.add_behavior(entities=robots,
-    #                                config=behavior_config,
-    #                                behavior_type=Dece,
-    #                                behavior_name="cbf")
+                                  dynamic_type=SingleIntegrator)
+    # Add behavior as well
+    PlaygroundFactory.add_behavior(entities=robots,
+                                   config=behavior_config['herding_apf']['params'],
+                                   behavior_type=DecentralisedAPF,
+                                   behavior_name="apf")
 
     # Create environment
     env = SimplePlayground(**env_config)
@@ -67,6 +75,8 @@ def main():
         env.add_entity(animal)
     for robot in robots:
         env.add_entity(robot)
+
+    env.add_behaviour(math_flock)
 
     # Add sensor
     for sensor in sensors:

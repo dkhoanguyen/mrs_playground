@@ -1,2 +1,2 @@
-sensing_radius: 100.0
+sensing_radius: 1000.0
 sweep_angle: 360.0

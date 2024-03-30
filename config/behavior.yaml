@@ -1,16 +1,43 @@
-behavior:
-  math_flock:
-    params:
-      follow_cursor: false
-      sensing_range: 40
-      danger_range: 60
-      initial_consensus: [800, 350]
-      max_v: 3
-    constants:
-      c1_alpha: 3
-      c1_beta: 20
-      c1_gamma: 5
-      c1_delta: 20
+math_flock:
+  params:
+    follow_cursor: false
+    sensing_range: 100
+    danger_range: 60
+    initial_consensus: [800, 350]
+    max_v: 3
+    dt: 0.1
+  constants:
+    c1_alpha: 3
+    c1_beta: 20
+    c1_gamma: 5
+    c1_delta: 20
 
-  decentralised_herding_cbf:
-    
+herding_apf:
+  params:
+    Cs: 2
+    Cr: 1
+    Cv: 1.5
+    Co: 1.7
+    distance_to_target: 150.0
+    interagent_spacing: 170.0
+    obstacle_range: 40.0
+    sensing_range: 1000.0
+
+    potential_func:
+      edge_follow:
+        attract: True
+        repulse: True
+        c: 8
+        m: 2
+      col_avoid:
+        attract: True
+        repulse: True
+        c: 10
+        m: 2
+      obs_avoid:
+        attract: True
+        repulse: True
+        c: 8
+        m: 10
+
+herding_cbf:
