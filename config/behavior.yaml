@@ -2,7 +2,7 @@ math_flock:
   params:
     follow_cursor: false
     sensing_range: 100
-    danger_range: 60
+    danger_range: 20
     initial_consensus: [800, 350]
     max_v: 3
     dt: 0.1
@@ -14,7 +14,7 @@ math_flock:
 
 herding_apf:
   params:
-    Cs: 2
+    Cs: 3
     Cr: 1
     Cv: 1.5
     Co: 1.7
@@ -41,3 +41,5 @@ herding_apf:
         m: 10
 
 herding_cbf:
+  params:
+    max_u: 10

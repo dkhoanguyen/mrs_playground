@@ -543,7 +543,7 @@ class MathematicalFlock(Behavior):
         si_dot = np.zeros(2)
         total = 0
         for robot in self._robots:
-            di = robot.pose.reshape(2)
+            di = robot._pose.reshape(2)
             if np.linalg.norm(di - si) <= r:
                 si_dot += -k * utils.unit_vector(di - si)
                 total += 1

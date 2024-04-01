@@ -15,6 +15,7 @@ from mrs_playground.environment.simple_playground import SimplePlayground
 from mrs_playground.environment.playground_factory import PlaygroundFactory
 
 from mr_herding.behavior.decentralised_apf import DecentralisedAPF
+from mr_herding.behavior.decentralised_cbf import DecentralisedCBF
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.join(PROJECT_DIR, 'config')
@@ -60,12 +61,16 @@ def main():
                                             sensing_type=RadiusSensing)
     PlaygroundFactory.add_dynamic(entities=robots,
                                   config=dynamic_config,
-                                  dynamic_type=SingleIntegrator)
+                                  dynamic_type=DoubleIntegrator)
     # Add behavior as well
     PlaygroundFactory.add_behavior(entities=robots,
-                                   config=behavior_config['herding_apf']['params'],
-                                   behavior_type=DecentralisedAPF,
-                                   behavior_name="apf")
+                                   config=behavior_config['herding_cbf']['params'],
+                                   behavior_type=DecentralisedCBF,
+                                   behavior_name="cbf")
+    
+    # Add robots
+    for robot in robots:
+        math_flock.add_robot(robot)
 
     # Create environment
     env = SimplePlayground(**env_config)

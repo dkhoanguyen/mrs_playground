@@ -11,5 +11,6 @@ setuptools.setup(
     author="Khoa Nguyen",
     author_email="khoanguyendacdang2198@gmail.com",
     packages=packages,
+    include_package_data=True,
     python_requires='>=3'
 )

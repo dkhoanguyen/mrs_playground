@@ -12,12 +12,12 @@ from mr_herding.cbf.constraints import *
 
 
 class DecentralisedCBF(Behavior):
-    def __init__(self):
+    def __init__(self,
+                 max_u: float):
         super().__init__()
 
         self._target_pos = np.array([500, 350])
-        self._max_u = 5
-        self._max_v = 2
+        self._max_u = max_u
 
         self._pose = np.zeros(2)
         self._u = np.zeros(2)
@@ -30,25 +30,25 @@ class DecentralisedCBF(Behavior):
         velocity = state[2:4]
 
         # Nominal Controller
-        u_nom = 1.0 * (self._target_pos - pose)
+        u_nom = 0.1 * (animal_states[0, :2] - pose)
         if np.linalg.norm(u_nom) > self._max_u:
             u_nom = self._max_u * utils.unit_vector(u_nom)
         u = u_nom
         # CBF Constraints
         ri = 30
-        rj = np.ones(animals_states.shape[0]) * 30
-        weight = np.ones(animals_states.shape[0]) * 0.5
+        rj = np.ones(animal_states.shape[0]) * 30
+        weight = np.ones(animal_states.shape[0]) * 1.0
 
         # timestep
         dt = 0.1
 
         xi = pose
-        xj = animals_states[:, :2]
+        xj = animal_states[:, :2]
         vi = utils.unit_vector(u_nom) * 10
         # vi = velocity
-        vj = animals_states[:, 2:4]
+        vj = animal_states[:, 2:4]
 
-        print(np.linalg.norm(xi - xj[0, :2]))
+        # print(np.linalg.norm(xi - xj[0, :2]))
 
         planes = ORCA.construct_orca_planes(xi=xi, xj=xj, vi=vi, vj=vj,
                                             ri=ri, rj=rj,
@@ -75,12 +75,12 @@ class DecentralisedCBF(Behavior):
         # A = np.vstack((A, A_dmax))
         # b = np.vstack((b, b_dmax))
 
-        # if len(planes) > 0:
-        #     A_orca, b_ocra = ORCA.build_constraint(planes, vi,
-        #                                            self._max_u, self._max_u,
-        #                                            1.0)
-        #     A = np.vstack((A, A_orca,))
-        #     b = np.vstack((b, b_ocra,))
+        if len(planes) > 0:
+            A_orca, b_ocra = ORCA.build_constraint(planes, vi,
+                                                   self._max_u, self._max_u,
+                                                   1.0)
+            A = np.vstack((A, A_orca,))
+            b = np.vstack((b, b_ocra,))
 
         P = np.identity(4) * 0.5
         p_omega = 100.0

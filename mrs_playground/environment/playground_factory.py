@@ -30,7 +30,7 @@ class PlaygroundFactory(object):
 
         for i in range(num):
             angle = np.pi * (2 * np.random.rand() - 1)
-            vel = 0.0 * np.array([np.cos(angle), np.sin(angle)])
+            vel = 3.0 * np.array([np.cos(angle), np.sin(angle)])
 
             config['pose'] = initial_poses[i, :]
             config['velocity'] = vel

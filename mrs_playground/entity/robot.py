@@ -48,21 +48,23 @@ class Robot(Entity):
         u_t = np.zeros(2)
         
         # Calculate control
-        self._behavior_state = "apf"
+        self._behavior_state = "cbf"
         u_t = self._behaviors[str(self._behavior_state)].update(
             state=self.state,
             other_states=robot_in_range,
             animal_states=animal_in_range)
         
-        if np.linalg.norm(u_t) >= self._max_v:
-            u_t = unit_vector(u_t) * self._max_v
+        if np.linalg.norm(u_t) >= self._max_a:
+            u_t = unit_vector(u_t) * self._max_a
 
         # State include position and velocity
         x_t = self.state[:4]
         x_t_1 = self._dynamic.step(x_t=x_t, u_t=u_t)
 
-        # Update state
-        # self._acceleration = u_t
+        # Bound velocity 
+        if np.linalg.norm(x_t_1[2:4]) > self._max_v:
+            x_t_1[2:4] = unit_vector(x_t_1[2:4]) * self._max_v
+
         self._velocity = x_t_1[2:4]
         self._pose = x_t_1[0:2]
 

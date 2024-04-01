@@ -1,0 +1,12 @@
+include *.py
+include *.txt
+recursive-include config *.yaml
+recursive-include example *.py
+recursive-include mr_herding *.py
+recursive-include mrs_playground *.DS_Store
+recursive-include mrs_playground *.ai
+recursive-include mrs_playground *.jpg
+recursive-include mrs_playground *.otf
+recursive-include mrs_playground *.png
+recursive-include mrs_playground *.psd
+recursive-include mrs_playground *.txt
