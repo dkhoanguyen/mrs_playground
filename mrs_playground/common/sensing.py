@@ -12,8 +12,11 @@ class SensingModel(ABC):
     def update(self, all_states: dict):
         self._all_states = all_states
 
+    def get_raw_all_states(self, target: str) -> np.ndarray:
+        return self._all_states[target]
+
     @abstractmethod
     def sense(self, state: np.ndarray,
-              target: str):
+              target: str) -> np.ndarray:
         """
         """

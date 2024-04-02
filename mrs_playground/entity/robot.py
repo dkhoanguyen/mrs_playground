@@ -46,14 +46,24 @@ class Robot(Entity):
         animal_in_range = self._sensing.sense(
             state=self.state, target="animal")
         u_t = np.zeros(2)
-        
+
+        # To faciliate for the fact that there is assuming a global planner to show the
+        # robots where the animals are
+        # Obtain raw animal states
+        all_animal_states = self._sensing.get_raw_all_states(target="animal")
+
+        # Obtain animal centroid
+        animal_centroid: np.ndarray = np.sum(all_animal_states[:,:2],axis=0) / all_animal_states.shape[0]
+
         # Calculate control
         self._behavior_state = "cbf"
         u_t = self._behaviors[str(self._behavior_state)].update(
             state=self.state,
-            other_states=robot_in_range,
-            animal_states=animal_in_range)
-        
+            robot_states=robot_in_range,
+            animal_states=animal_in_range,
+            animal_centroid=animal_centroid
+        )
+
         if np.linalg.norm(u_t) >= self._max_a:
             u_t = unit_vector(u_t) * self._max_a
 
@@ -61,7 +71,7 @@ class Robot(Entity):
         x_t = self.state[:4]
         x_t_1 = self._dynamic.step(x_t=x_t, u_t=u_t)
 
-        # Bound velocity 
+        # Bound velocity
         if np.linalg.norm(x_t_1[2:4]) > self._max_v:
             x_t_1[2:4] = unit_vector(x_t_1[2:4]) * self._max_v
 
@@ -74,6 +84,9 @@ class Robot(Entity):
 
         if self._text:
             screen.blit(self._text, tuple(self._pose - np.array([20, 20])))
+
+        pygame.draw.circle(screen, pygame.Color("white"),
+                           tuple(self._pose), 100, 1)
 
         # Update graphics accordingly
         self._move(self._velocity)

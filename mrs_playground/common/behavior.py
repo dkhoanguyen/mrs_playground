@@ -7,9 +7,7 @@ from abc import ABC, abstractmethod
 
 class Behavior(ABC):
     @abstractmethod
-    def update(self, state: np.ndarray,
-               other_states: np.ndarray,
-               animal_states: np.ndarray):
+    def update(self, *args, **kwargs):
         '''
         '''
     @abstractmethod

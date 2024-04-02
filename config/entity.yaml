@@ -1,14 +1,14 @@
 animal:
-  num: 1
+  num: 20
   x_interval: [800, 900]
   y_interval: [200, 400]
 
 robot:
-  num: 1
+  num: 2
   id: 10
-  x_interval: [100, 200]
+  x_interval: [500, 600]
   y_interval: [300, 500]
-  sensing_range: 1000.0
+  sensing_range: 120.0
   comms_range: 100.0
   max_v: 10.0
   max_a: 10.0

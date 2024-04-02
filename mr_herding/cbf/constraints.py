@@ -2,7 +2,6 @@
 
 from typing import List
 import numpy as np
-import sympy as sp
 
 
 class Plane(object):
@@ -59,9 +58,9 @@ class ORCA():
                 # print("Project on cut off circle (1)")
                 # Find normal
                 # Add offset to prevent stuck
-                if abs(alpha) <= 0.01:
-                    w = w - 0.1 * unit_vector(np.array([x_ji[1], x_ji[0]]))
-                    w_norm = np.linalg.norm(w)
+                # if abs(alpha) <= 0.01:
+                #     w = w - 0.1 * unit_vector(np.array([x_ji[1], x_ji[0]]))
+                #     w_norm = np.linalg.norm(w)
                 unit_w = w / w_norm
                 plane.normal = unit_w.reshape((2, 1))
 
@@ -165,7 +164,6 @@ class ORCA():
                          vi: np.ndarray, 
                          ai: float, aj: float,
                          gamma: float = 1.0):
-        # A = np.empty((0, 2))
         A = np.empty((0, 4))
         b = np.empty((0, 1))
         for plane in orca_planes:
@@ -209,9 +207,9 @@ class MinDistance:
                     2 * (ai + aj) * (xij_norm - d))
             h_dot = xij
             row_A = np.append(-h_dot, -(ai/(ai + aj))*gamma_h_min)
-            row_A = np.append(row_A, 0.0)
+            row_A = np.append(row_A, 1.0)
             A = np.vstack((A, row_A))
-            b = np.vstack([b, 0])
+            b = np.vstack([b, 0.0])
 
         return A, b
 
@@ -241,9 +239,9 @@ class MaxDistance:
                         - ((ai + aj) * vij.dot(xij.transpose()))/sqrt_x_d
             h_dot = xij
             row_A = np.append(h_dot, -(ai/(ai + aj))*gamma_h_max)
-            row_A = np.append(row_A, 0.0)
+            row_A = np.append(row_A, 1.0)
             A = np.vstack((A, row_A))
-            b = np.vstack([b, 0.0])
+            b = np.vstack([b,  0.0])
 
         return A, b
 

@@ -74,9 +74,10 @@ class DecentralisedAPF(Behavior):
                 return True
         return False
 
-    def update(self, state: np.ndarray,
-               other_states: np.ndarray,
-               animal_states: np.ndarray):
+    def update(self, *args, **kwargs):
+        state = kwargs["state"]
+        other_states = kwargs["robot_states"]
+        animal_states = kwargs["animal_states"]
         # Control signal
         self._pose = state[:2]
         u = np.zeros(2)
