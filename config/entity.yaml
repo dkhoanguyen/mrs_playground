@@ -4,7 +4,7 @@ animal:
   y_interval: [200, 400]
 
 robot:
-  num: 2
+  num: 8
   id: 10
   x_interval: [500, 600]
   y_interval: [300, 500]

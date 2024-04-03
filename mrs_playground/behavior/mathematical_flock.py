@@ -188,6 +188,7 @@ class MathematicalFlock(Behavior):
 
         self._densities = self._herd_density(animal_states=animal_states,
                                              robot_states=robot_states)
+        # print(self._densities)
 
         qdot = local_clustering + \
             flocking + self._flocking_condition * global_clustering + \
@@ -225,6 +226,9 @@ class MathematicalFlock(Behavior):
                 for edge in cluster:
                     pygame.draw.line(screen, pygame.Color("white"), tuple(edge[0, :2]),
                                      tuple(edge[1, :2]))
+        for idx, animal in enumerate(self._animals):
+            pygame.draw.line(screen, pygame.Color("white"), tuple(animal.state[:2]),
+                                     tuple(animal.state[:2] + 100 * self._densities[idx,:]))
 
     # Mathematical model of flocking
     def _flocking(self, animal_states: np.ndarray,

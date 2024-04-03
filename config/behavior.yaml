@@ -4,7 +4,7 @@ math_flock:
     sensing_range: 100
     danger_range: 80
     initial_consensus: [800, 350]
-    max_v: 3
+    max_v: 0
     dt: 0.1
   constants:
     c1_alpha: 3

@@ -85,6 +85,8 @@ class Robot(Entity):
         if self._text:
             screen.blit(self._text, tuple(self._pose - np.array([20, 20])))
 
+        pygame.draw.circle(screen, pygame.Color("yellow"),
+                           tuple(self._pose), 170, 1)
         pygame.draw.circle(screen, pygame.Color("white"),
                            tuple(self._pose), 100, 1)
 

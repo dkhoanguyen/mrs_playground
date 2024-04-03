@@ -161,8 +161,7 @@ class ORCA():
 
     @staticmethod
     def build_constraint(orca_planes: List[Plane], 
-                         vi: np.ndarray, 
-                         ai: float, aj: float,
+                         vi: np.ndarray,
                          gamma: float = 1.0):
         A = np.empty((0, 4))
         b = np.empty((0, 1))
@@ -175,7 +174,7 @@ class ORCA():
             h = h.reshape(1)
 
             # Optimal decay to ensure feasibility
-            row_A = np.append(-w.transpose(), -ai/(ai + aj) * h)
+            row_A = np.append(-w.transpose(), -h)
             row_A = np.append(row_A, 0.0)
             A = np.vstack((A, row_A))
 
@@ -244,6 +243,11 @@ class MaxDistance:
             b = np.vstack([b,  0.0])
 
         return A, b
+
+class Stabiliser:
+    @staticmethod
+    def build_constraint(prev_u: np.ndarray):
+        pass
 
 
 def unit_vector(v: np.ndarray):
