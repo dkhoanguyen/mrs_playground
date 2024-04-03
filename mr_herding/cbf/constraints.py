@@ -206,7 +206,7 @@ class MinDistance:
                     2 * (ai + aj) * (xij_norm - d))
             h_dot = xij
             row_A = np.append(-h_dot, -(ai/(ai + aj))*gamma_h_min)
-            row_A = np.append(row_A, 1.0)
+            row_A = np.append(row_A, 0.0)
             A = np.vstack((A, row_A))
             b = np.vstack([b, 0.0])
 

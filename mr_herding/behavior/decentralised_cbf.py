@@ -23,7 +23,7 @@ class DecentralisedCBF(Behavior):
         self._pose = np.zeros(2)
         self._u = np.zeros(2)
 
-        self._prev_u = np.zeros(2)
+        self._prev_x = np.zeros(4)
 
     def update(self, *args, **kwargs):
         state = kwargs["state"]
@@ -37,10 +37,32 @@ class DecentralisedCBF(Behavior):
 
         # If no animal, move toward centroid
         if animal_states.shape[0] == 0:
-            u = 0.1 * (animal_centroid - pose)
-            if np.linalg.norm(u) > self._max_u:
-                u = self._max_u * utils.unit_vector(u)
-            self._u = u
+            u_nom = 0.1 * (animal_centroid - pose)
+            if np.linalg.norm(u_nom) > self._max_u:
+                u_nom = self._max_u * utils.unit_vector(u_nom)
+
+            A = np.empty((0, 4))
+            b = np.empty((0, 1))
+
+            A_orca, b_orca = self._robot_robot_collision_avoidance(state=state,
+                                                                   v_nom=utils.unit_vector(
+                                                                       u_nom)*10.0,
+                                                                   robot_states=other_states,
+                                                                   distance=120.0)
+            A = np.vstack((A, A_orca))
+            b = np.vstack((b, b_orca))
+
+            u, x = self._solve_u(vi=velocity,
+                                 u_nom=u_nom,
+                                 prev_x=self._prev_x,
+                                 A=A, b=b,
+                                 lb=np.array(
+                                     [-self._max_u, -self._max_u, -np.inf, -np.inf]),
+                                 ub=np.array(
+                                     [self._max_u, self._max_u, np.inf, np.inf]),
+                                 p_omega=1000000.0,
+                                 omega_0=1.0)
+            self._prev_x = x
             return u
 
         xi = pose
@@ -48,7 +70,7 @@ class DecentralisedCBF(Behavior):
 
         # Nominal Controller
         u_nom = self._edge_following(
-            xi=xi, xj=xj, vi=velocity, d=100.0, gain=5.0)
+            xi=xi, xj=xj, vi=velocity, d=100.0, gain=10.0)
 
         # print(np.linalg.norm(u_nom))
         if np.linalg.norm(u_nom) > self._max_u:
@@ -65,9 +87,9 @@ class DecentralisedCBF(Behavior):
         b = np.empty((0, 1))
         A_r_a, b_r_a = self._robot_animal_formation(state=state,
                                                     animal_states=animal_states,
-                                                    min_distance=100.0,
-                                                    gamma_min=0.1,
-                                                    max_distance=170.0,
+                                                    min_distance=120.0,
+                                                    gamma_min=1.0,
+                                                    max_distance=150.0,
                                                     gamma_max=1.0)
 
         A = np.vstack((A, A_r_a))
@@ -76,35 +98,43 @@ class DecentralisedCBF(Behavior):
         # Robot-robot formation
         A_r_r, b_r_r = self._robot_robot_formation(state=state,
                                                    robot_states=other_states,
-                                                   min_distance=170.0,
+                                                   min_distance=150.0,
                                                    gamma_min=1.0,
-                                                   max_distance=200.0,
+                                                   max_distance=250.0,
                                                    gamma_max=1.0)
 
         A = np.vstack((A, A_r_r))
         b = np.vstack((b, b_r_r))
 
-        P = np.identity(4)
-        p_omega = 1000000.0
-        omega_0 = 1.0
-        P[2, 2] = p_omega
-        P[3, 3] = 1.0
+        # A_orca, b_orca = self._robot_robot_collision_avoidance(state=state,
+        #                                                        v_nom=utils.unit_vector(
+        #                                                            u_nom)*10.0,
+        #                                                        robot_states=animal_states,
+        #                                                        distance=120.0)
+        # A = np.vstack((A, A_orca))
+        # b = np.vstack((b, b_orca))
 
-        q = -2 * np.array([u_nom[0], u_nom[1], omega_0 * p_omega, 0.0])
-        UB = np.array([self._max_u, self._max_u, np.inf, np.inf])
-        LB = np.array([-self._max_u, -self._max_u, -np.inf, -np.inf])
+        # A_orca, b_orca = self._robot_robot_collision_avoidance(state=state,
+        #                                                        v_nom=utils.unit_vector(
+        #                                                            u_nom)*10.0,
+        #                                                        robot_states=other_states,
+        #                                                        distance=60.0)
+        # A = np.vstack((A, A_orca))
+        # b = np.vstack((b, b_orca))
 
-        u = solve_qp(P, q, G=A, h=b, lb=LB, ub=UB,
-                     solver="cvxopt")  # osqp or cvxopt
-        if u is None:
-            u = np.zeros(2)
-        else:
-            u = u[:2]
-        if np.linalg.norm(u) > self._max_u:
-            u = self._max_u * utils.unit_vector(u)
-        self._u = u_nom
-        self._prev_u = u
+        u, x = self._solve_u(vi=velocity,
+                             u_nom=u_nom,
+                             prev_x=self._prev_x,
+                             A=A, b=b,
+                             lb=np.array(
+                                 [-self._max_u, -self._max_u, -np.inf, -np.inf]),
+                             ub=np.array(
+                                 [self._max_u, self._max_u, np.inf, np.inf]),
+                             p_omega=10000000.0,
+                             omega_0=1.0)
 
+        self._u = u
+        self._prev_x = x
         return u
 
     def display(self, screen: pygame.Surface):
@@ -199,7 +229,6 @@ class DecentralisedCBF(Behavior):
 
         return A, b
 
-
     def _robot_robot_collision_avoidance(self, state: np.ndarray,
                                          v_nom: np.ndarray,
                                          robot_states: np.ndarray,
@@ -229,3 +258,39 @@ class DecentralisedCBF(Behavior):
             b = np.vstack((b, b_ocra,))
 
         return A, b
+
+    def _solve_u(self,
+                 vi: np.ndarray,
+                 u_nom: np.ndarray,
+                 prev_x: np.ndarray,
+                 A: np.ndarray,
+                 b: np.ndarray,
+                 lb: np.ndarray,
+                 ub: np.ndarray,
+                 p_omega: float,
+                 omega_0: float):
+        """
+        Run the QP to find optimal u
+        """
+
+        H = np.identity(4) * 0.5
+        # Control bound synthesis
+        H[2, 2] = p_omega
+        # Slack variable
+        H[3, 3] = 1.0
+        p = -2 * np.array([u_nom[0], u_nom[1], omega_0 * p_omega, 0.0])
+        x = solve_qp(P=H, q=p, G=A, h=b, lb=lb, ub=ub,
+                     solver="cvxopt")  # osqp or cvxopt
+
+        u = np.zeros(2)
+        if x is None:
+            # print("Yes")
+            if np.linalg.norm(vi) > 0:
+                # Slow to stop
+                u = 0.5 * (-vi)
+            else:
+                u = u_nom
+        else:
+            u = x[:2]
+
+        return u, x

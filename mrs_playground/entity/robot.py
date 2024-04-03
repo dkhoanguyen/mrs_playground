@@ -86,9 +86,9 @@ class Robot(Entity):
             screen.blit(self._text, tuple(self._pose - np.array([20, 20])))
 
         pygame.draw.circle(screen, pygame.Color("yellow"),
-                           tuple(self._pose), 170, 1)
+                           tuple(self._pose), 150, 1)
         pygame.draw.circle(screen, pygame.Color("white"),
-                           tuple(self._pose), 100, 1)
+                           tuple(self._pose), 120, 1)
 
         # Update graphics accordingly
         self._move(self._velocity)
