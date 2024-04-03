@@ -24,6 +24,9 @@ class SingleIntegrator(DynamicModel):
         self._Gamma = np.eye(4)
         np.fill_diagonal(self._Gamma, np.array([dt, dt, 1, 1]))
 
+    def __str__(self):
+        return "pm_singleintegrator"
+
     def step(self, x_t: np.ndarray, u_t: np.ndarray) -> np.ndarray:
         u_t = np.hstack((u_t, u_t)).reshape((4, 1))
         return (self._Phi.dot(x_t.reshape(4, 1)) + self._Gamma.dot(u_t)).reshape(4)
@@ -50,6 +53,9 @@ class DoubleIntegrator(DynamicModel):
         self._Gamma = np.eye(4)
         np.fill_diagonal(self._Gamma, np.array(
             [0.5 * dt**2, 0.5 * dt**2, dt, dt]))
+        
+    def __str__(self):
+        return "pm_doubleintegrator"
 
     def step(self, x_t: np.ndarray, u_t: np.ndarray) -> np.ndarray:
         u_t = np.hstack((u_t, u_t)).reshape((4, 1))

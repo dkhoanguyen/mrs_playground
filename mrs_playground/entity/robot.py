@@ -56,7 +56,9 @@ class Robot(Entity):
         animal_centroid: np.ndarray = np.sum(all_animal_states[:,:2],axis=0) / all_animal_states.shape[0]
 
         # Calculate control
-        self._behavior_state = "cbf"
+        if len(self._behaviors) == 1:
+            self._behavior_state = next(iter(self._behaviors))
+
         u_t = self._behaviors[str(self._behavior_state)].update(
             state=self.state,
             robot_states=robot_in_range,
@@ -64,17 +66,24 @@ class Robot(Entity):
             animal_centroid=animal_centroid
         )
 
-        if np.linalg.norm(u_t) >= self._max_a:
-            u_t = unit_vector(u_t) * self._max_a
+        if str(self._dynamic) == "pm_doubleintegrator":
+            if np.linalg.norm(u_t) >= self._max_a:
+                u_t = unit_vector(u_t) * self._max_a
+        
+        if str(self._dynamic) == "pm_singleintegrator":
+            if np.linalg.norm(u_t) >= self._max_v:
+                u_t = unit_vector(u_t) * self._max_v
 
         # State include position and velocity
         x_t = self.state[:4]
         x_t_1 = self._dynamic.step(x_t=x_t, u_t=u_t)
 
-        # Bound velocity
-        if np.linalg.norm(x_t_1[2:4]) > self._max_v:
-            x_t_1[2:4] = unit_vector(x_t_1[2:4]) * self._max_v
+        # Bound velocity if dynamic is double integrator
+        if str(self._dynamic) == "pm_doubleintegrator":
+            if np.linalg.norm(x_t_1[2:4]) > self._max_v:
+                x_t_1[2:4] = unit_vector(x_t_1[2:4]) * self._max_v
 
+        self._acceleration = u_t
         self._velocity = x_t_1[2:4]
         self._pose = x_t_1[0:2]
 
@@ -84,11 +93,6 @@ class Robot(Entity):
 
         if self._text:
             screen.blit(self._text, tuple(self._pose - np.array([20, 20])))
-
-        pygame.draw.circle(screen, pygame.Color("yellow"),
-                           tuple(self._pose), 150, 1)
-        pygame.draw.circle(screen, pygame.Color("white"),
-                           tuple(self._pose), 120, 1)
 
         # Update graphics accordingly
         self._move(self._velocity)

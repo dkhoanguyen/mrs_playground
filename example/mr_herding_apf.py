@@ -17,7 +17,7 @@ from mrs_playground.environment.playground_factory import PlaygroundFactory
 from mr_herding.behavior.decentralised_apf import DecentralisedAPF
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_DIR = os.path.join(PROJECT_DIR, 'config')
+CONFIG_DIR = os.path.join(PROJECT_DIR.replace('example',''), 'config')
 
 
 def main():
@@ -55,6 +55,7 @@ def main():
     robots = PlaygroundFactory.spawn_entities(entity_config['robot'], Robot)
 
     # Add sensors and dynamics to robots
+    sensing_config['sensing_radius'] = behavior_config['herding_apf']['params']['sensing_range']
     sensors = PlaygroundFactory.add_sensing(entities=robots,
                                             config=sensing_config,
                                             sensing_type=RadiusSensing)

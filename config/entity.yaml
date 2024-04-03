@@ -6,7 +6,7 @@ animal:
 robot:
   num: 8
   id: 10
-  x_interval: [500, 510]
+  x_interval: [200, 300]
   y_interval: [200, 300]
   sensing_range: 120.0
   comms_range: 100.0

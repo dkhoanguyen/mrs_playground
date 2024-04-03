@@ -187,7 +187,8 @@ class MinDistance:
     def build_constraint(xi: np.ndarray, xj: np.ndarray,
                          vi: np.ndarray, vj: np.ndarray,
                          ai: float, aj: float,
-                         d: float, gamma: float):
+                         d: float, gamma: float,
+                         relax: bool = False):
         A = np.empty((0, 4))
         # A = np.empty((0, 2))
         b = np.empty((0, 1))
@@ -206,7 +207,7 @@ class MinDistance:
                     2 * (ai + aj) * (xij_norm - d))
             h_dot = xij
             row_A = np.append(-h_dot, -(ai/(ai + aj))*gamma_h_min)
-            row_A = np.append(row_A, 0.0)
+            row_A = np.append(row_A, int(relax))
             A = np.vstack((A, row_A))
             b = np.vstack([b, 0.0])
 
@@ -217,7 +218,8 @@ class MaxDistance:
     def build_constraint(xi: np.ndarray, xj: np.ndarray,
                          vi: np.ndarray, vj: np.ndarray,
                          ai: float, aj: float,
-                         d: float, gamma: float):
+                         d: float, gamma: float,
+                         relax: bool = False):
         A = np.empty((0, 4))
         # A = np.empty((0, 2))
         b = np.empty((0, 1))
@@ -238,7 +240,7 @@ class MaxDistance:
                         - ((ai + aj) * vij.dot(xij.transpose()))/sqrt_x_d
             h_dot = xij
             row_A = np.append(h_dot, -(ai/(ai + aj))*gamma_h_max)
-            row_A = np.append(row_A, 1.0)
+            row_A = np.append(row_A, int(relax))
             A = np.vstack((A, row_A))
             b = np.vstack([b,  0.0])
 
