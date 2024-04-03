@@ -70,7 +70,7 @@ class DecentralisedCBF(Behavior):
 
         # Nominal Controller
         u_nom = self._edge_following(
-            xi=xi, xj=xj, vi=velocity, d=100.0, gain=10.0)
+            xi=xi, xj=xj, vi=velocity, d=50.0, gain=10.0)
 
         # print(np.linalg.norm(u_nom))
         if np.linalg.norm(u_nom) > self._max_u:
@@ -98,9 +98,9 @@ class DecentralisedCBF(Behavior):
         # Robot-robot formation
         A_r_r, b_r_r = self._robot_robot_formation(state=state,
                                                    robot_states=other_states,
-                                                   min_distance=150.0,
+                                                   min_distance=160.0,
                                                    gamma_min=1.0,
-                                                   max_distance=250.0,
+                                                   max_distance=170.0,
                                                    gamma_max=1.0)
 
         A = np.vstack((A, A_r_r))
@@ -158,8 +158,8 @@ class DecentralisedCBF(Behavior):
             # v = -xij
             # P Controller to obtain control u
             v_sum += v
-        if np.linalg.norm(v_sum) > 10.0:
-            v_sum = utils.unit_vector(v_sum) * 10.0
+        # if np.linalg.norm(v_sum) > 10.0:
+        #     v_sum = utils.unit_vector(v_sum) * 10.0
         u = v_sum - vi
         return u
 
