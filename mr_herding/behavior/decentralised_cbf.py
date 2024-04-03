@@ -289,7 +289,7 @@ class DecentralisedCBF(Behavior):
                 # Slow to stop
                 u = 0.5 * (-vi)
             else:
-                u = u_nom
+                u = np.zeros(2)
         else:
             u = x[:2]
 
