@@ -62,13 +62,8 @@ class GradPotentionFunc(object):
 
         n_xij_d = xij_norm - d
 
-        # sech = 1/np.cosh(n_xij_d)
-        tanh = np.tanh(n_xij_d)
-
         # Potential function
-        # fx = ((n_xij_d * sech**2 * (np.abs(n_xij_d) + 1) + tanh)) / \
-        #     (np.abs(n_xij_d) + 1)**2
-        fx = 1/(1 + np.exp(-n_xij_d)) * tanh
+        fx = 1/(1 + np.exp(-n_xij_d)) * np.tanh(n_xij_d)
         px = -fx
         return px
 

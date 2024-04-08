@@ -62,6 +62,7 @@ def main():
                                   config=dynamic_config,
                                   dynamic_type=DoubleIntegrator)
     # Add behavior as well
+    behavior_config['herding_cbf']['params'].update({"max_num": len(robots)})
     PlaygroundFactory.add_behavior(entities=robots,
                                    config=behavior_config['herding_cbf']['params'],
                                    behavior_type=DecentralisedCBF,

@@ -4,11 +4,11 @@ animal:
   y_interval: [300, 400]
 
 robot:
-  num: 5
+  num: 4
   id: 10
   x_interval: [200, 210]
   y_interval: [200, 600]
-  sensing_range: 120.0
-  comms_range: 100.0
+  sensing_range: 200.0
+  comms_range: 200.0
   max_v: 10.0
   max_a: 10.0

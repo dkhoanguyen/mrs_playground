@@ -46,16 +46,6 @@ class Robot(Entity):
     def set_leader(self):
         self._is_leader = True
 
-    def unset_leader(self):
-        self._is_leader = False
-
-    def set_role(self, role):
-        self._role = role
-
-    def set_link(self, left, right):
-        self._left_id = left
-        self._right_id = right
-
     def update(self, *args, **kwargs):
         # Herding target
         self._target = np.array([1200, 600])
@@ -93,11 +83,7 @@ class Robot(Entity):
             animal_centroid=animal_centroid,
             comms=self._comms,
             all_comms=all_comms,
-            is_leader=self._is_leader,
-            id=self._id,
-            role=self._role,
-            left=self._left_id,
-            right=self._right_id
+            id=self._id
         )
 
         if str(self._dynamic) == "pm_doubleintegrator":
