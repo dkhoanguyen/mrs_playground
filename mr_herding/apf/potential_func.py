@@ -71,3 +71,17 @@ class GradPotentionFunc(object):
         fx = 1/(1 + np.exp(-n_xij_d)) * tanh
         px = -fx
         return px
+
+    @staticmethod
+    def replusion_func(xi: np.ndarray, xj: np.ndarray,
+                       d: float):
+        xij = xi - xj
+        xij_norm = np.linalg.norm(xij)
+
+        n_xij_d = xij_norm - d
+        fx = -np.exp(-n_xij_d)
+        gx = np.tanh(n_xij_d)
+
+        # Potential function
+        px = -fx*(gx**2)
+        return px

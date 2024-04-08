@@ -55,7 +55,7 @@ class SimplePlayground(object):
 
     def add_behaviour(self, behavior: Behavior):
         self._behaviors.append(behavior)
-    
+
     def add_sensing_models(self, sensing_model: SensingModel):
         self._sensing_model.append(sensing_model)
 
@@ -85,15 +85,21 @@ class SimplePlayground(object):
             for entity in self._entities[entity_type]:
                 all_states[entity_type] = np.vstack(
                     (all_states[entity_type], entity.state))
-                
+
         # Delegate all states to sensors, ie sensors are "sensing" the environment
         for sensing_model in self._sensing_model:
             sensing_model.update(all_states=all_states)
 
+        # All comms
+        all_comms = []
+        for entity in self._entities['robot']:
+            all_comms.append(entity.comms)
+
         # Update all entities
         for entity_type in self._entities.keys():
             for entity in self._entities[entity_type]:
-                entity.update(events=events)
+                entity.update(events=events,
+                              comms=all_comms)
 
     def render(self):
         if self._render:

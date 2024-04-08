@@ -21,6 +21,8 @@ class ORCA():
         '''
         Construct ORCA plane for each pair of i and j agents
         '''
+        if np.linalg.norm(vj) <= 0.001:
+            weight = 1.0
         plane = Plane()
         inv_time_horizon = 1.0/time_horizon
         x_ji = xj - xi
@@ -143,6 +145,34 @@ class ORCA():
                     return plane
 
     @staticmethod
+    def custom_orca_plane(xi: np.ndarray,
+                          target_pose: np.ndarray,
+                          animal_centroid: np.ndarray,
+                          offset: float, is_left: bool):
+        plane = Plane()
+        x_lc = unit_vector(target_pose - animal_centroid)
+
+        if is_left:
+            # plane.normal = np.array([-x_lc[1], x_lc[0]])
+            plane.normal = np.array([0,-1])
+        else:
+            # plane.normal = np.array([x_lc[1], -x_lc[0]])
+            plane.normal = np.array([0,1])
+        plane.point = animal_centroid + plane.normal * offset
+        # print(plane.point)
+        
+        a, b = plane.normal
+        x1, y1 = plane.point
+        x2, y2 = xi
+        
+        v = (x2 - x1, y2 - y1)
+        dot_product = a * v[0] + b * v[1]
+        if dot_product < 0:
+            return None
+
+        return plane
+
+    @staticmethod
     def construct_orca_planes(xi: np.ndarray, xj: np.ndarray,
                               vi: np.ndarray, vj: np.ndarray,
                               ri: float, rj: np.ndarray,
@@ -160,7 +190,7 @@ class ORCA():
         return planes
 
     @staticmethod
-    def build_constraint(orca_planes: List[Plane], 
+    def build_constraint(orca_planes: List[Plane],
                          vi: np.ndarray,
                          gamma: float = 1.0):
         A = np.empty((0, 4))
@@ -213,6 +243,7 @@ class MinDistance:
 
         return A, b
 
+
 class MaxDistance:
     @staticmethod
     def build_constraint(xi: np.ndarray, xj: np.ndarray,
@@ -235,9 +266,9 @@ class MaxDistance:
             h_max = sqrt_x_d - (xij / xij_norm).dot(vij.transpose())
 
             gamma_h_max = gamma * (h_max**3) * xij_norm \
-                        + (vij.dot(xij.transpose())) ** 2/(xij_norm**2) \
-                        - vij_norm**2 \
-                        - ((ai + aj) * vij.dot(xij.transpose()))/sqrt_x_d
+                + (vij.dot(xij.transpose())) ** 2/(xij_norm**2) \
+                - vij_norm**2 \
+                - ((ai + aj) * vij.dot(xij.transpose()))/sqrt_x_d
             h_dot = xij
             row_A = np.append(h_dot, -(ai/(ai + aj))*gamma_h_max)
             row_A = np.append(row_A, int(relax))
@@ -245,6 +276,7 @@ class MaxDistance:
             b = np.vstack([b,  0.0])
 
         return A, b
+
 
 class Stabiliser:
     @staticmethod

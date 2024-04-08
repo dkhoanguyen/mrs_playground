@@ -45,9 +45,20 @@ class Entity(pygame.sprite.Sprite, ABC):
         # Sensing Model
         self._sensing = None
 
+        self._comms = {}
+
     @property
     def state(self):
         return np.hstack((self._pose, self._velocity, self._acceleration))
+    
+    # Property for communication between entities
+    @property
+    def comms(self):
+        return self._comms
+    
+    @comms.setter
+    def comms(self, comms):
+        self._comms = comms
 
     # Behaviors
     def add_behavior(self, behavior: dict):

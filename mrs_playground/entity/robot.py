@@ -34,12 +34,38 @@ class Robot(Entity):
 
         self._behavior_state = None
 
+        self._is_leader = False
+        self._role = "None"
+
+        self._left_id = 0
+        self._right_id = 0
+
     def __str__(self):
         return "robot"
 
+    def set_leader(self):
+        self._is_leader = True
+
+    def unset_leader(self):
+        self._is_leader = False
+
+    def set_role(self, role):
+        self._role = role
+
+    def set_link(self, left, right):
+        self._left_id = left
+        self._right_id = right
+
     def update(self, *args, **kwargs):
+        # Herding target
+        self._target = np.array([1200, 600])
+
         # Behavior tree should be here
         events = kwargs["events"]
+        all_comms = kwargs["comms"]
+
+        self._comms.update({"id": self._id,
+                            "state": self.state})
 
         # Check which robot is within vision
         robot_in_range = self._sensing.sense(state=self.state, target="robot")
@@ -53,7 +79,8 @@ class Robot(Entity):
         all_animal_states = self._sensing.get_raw_all_states(target="animal")
 
         # Obtain animal centroid
-        animal_centroid: np.ndarray = np.sum(all_animal_states[:,:2],axis=0) / all_animal_states.shape[0]
+        animal_centroid: np.ndarray = np.sum(
+            all_animal_states[:, :2], axis=0) / all_animal_states.shape[0]
 
         # Calculate control
         if len(self._behaviors) == 1:
@@ -63,13 +90,20 @@ class Robot(Entity):
             state=self.state,
             robot_states=robot_in_range,
             animal_states=animal_in_range,
-            animal_centroid=animal_centroid
+            animal_centroid=animal_centroid,
+            comms=self._comms,
+            all_comms=all_comms,
+            is_leader=self._is_leader,
+            id=self._id,
+            role=self._role,
+            left=self._left_id,
+            right=self._right_id
         )
 
         if str(self._dynamic) == "pm_doubleintegrator":
             if np.linalg.norm(u_t) >= self._max_a:
                 u_t = unit_vector(u_t) * self._max_a
-        
+
         if str(self._dynamic) == "pm_singleintegrator":
             if np.linalg.norm(u_t) >= self._max_v:
                 u_t = unit_vector(u_t) * self._max_v
