@@ -18,10 +18,30 @@ from mr_herding.apf.potential_func import *
 class DecentralisedCBF(Behavior):
     def __init__(self,
                  max_u: float,
-                 max_num: int):
+                 max_num: int,
+                 sensing_range: float,
+                 comms_range: float,
+                 min_robot_d: float,
+                 max_robot_d: float,
+                 min_animal_d: float,
+                 max_animal_d: float,
+                 collision_avoidance_d: float,
+                 converge_std: float,
+                 herding_target: np.ndarray
+                 ):
         super().__init__()
 
         self._max_u = max_u
+
+        self._sensing_range = sensing_range
+        self._comms_range = comms_range
+        self._min_robot_d = min_robot_d
+        self._max_robot_d = max_robot_d
+        self._min_animal_d = min_animal_d
+        self._max_animal_d = max_animal_d
+        self._collision_avoidance_d = collision_avoidance_d
+        self._converge_std = converge_std
+        self._target = np.array(herding_target)
 
         self._pose = np.zeros(2)
         self._u = np.zeros(2)
@@ -43,6 +63,8 @@ class DecentralisedCBF(Behavior):
 
         self._start_time = time.time()
 
+        self._prev_dot_product = 0.0
+
     def update(self, *args, **kwargs):
         state: np.ndarray = kwargs["state"]
         other_states: np.ndarray = kwargs["robot_states"]
@@ -56,8 +78,6 @@ class DecentralisedCBF(Behavior):
         self._pose = state[:2]
         velocity = state[2:4]
 
-        self._target = np.array([300, 350])
-
         A = np.empty((0, 4))
         b = np.empty((0, 1))
 
@@ -65,6 +85,7 @@ class DecentralisedCBF(Behavior):
         comms.update({"adj_vector": self._adj_vector})
         comms.update({"leaf": self._is_leaf})
         comms.update({"leader": self._is_leader})
+        comms.update({"animals_in_vision": animal_states})
 
         # Calculate robots centroid which can be approximated as the centroid
         # of the animals
@@ -86,9 +107,9 @@ class DecentralisedCBF(Behavior):
 
             A_orca, b_orca = self._robot_robot_collision_avoidance(state=state,
                                                                    v_nom=utils.unit_vector(
-                                                                       u_nom)*10.0,
+                                                                       u_nom)*self._max_u,
                                                                    robot_states=other_states,
-                                                                   distance=120.0)
+                                                                   distance=self._collision_avoidance_d)
             A = np.vstack((A, A_orca))
             b = np.vstack((b, b_orca))
 
@@ -111,7 +132,7 @@ class DecentralisedCBF(Behavior):
 
         # Nominal Controller
         u_nom = self._edge_following(
-            xi=xi, xj=xj, vi=velocity, d=120.0, gain=150.0)
+            xi=xi, xj=xj, vi=velocity, d=self._min_animal_d, gain=150.0)
 
         # print(np.linalg.norm(u_nom))
         if np.linalg.norm(u_nom) > self._max_u:
@@ -121,8 +142,8 @@ class DecentralisedCBF(Behavior):
         all_d_to_animal = np.linalg.norm(xi - xj, axis=1)
         all_d_to_animal = np.sort(all_d_to_animal)
         self._d_to_animal.append(all_d_to_animal[0])
-        if len(self._d_to_animal) >= 100:
-            if np.std(self._d_to_animal) < 10.0:
+        if len(self._d_to_animal) >= self._d_to_animal.maxlen:
+            if np.std(self._d_to_animal) < self._converge_std:
                 self._converge_to_animal = True
 
         # u_nom = np.zeros(2)
@@ -175,57 +196,40 @@ class DecentralisedCBF(Behavior):
                 if "leader" in comm.keys() and comm["leader"]:
                     leader_node = comm["state"][:2]
 
-            # first_d_to_target = np.linalg.norm(
-            #     self._target - first_leaf_node[:2])
-            # second_d_to_target = np.linalg.norm(
-            #     self._target - second_leaf_node[:2])
-
             self._centroid_to_target = unit_vector(self._target - centroid)
             if leaf_node.shape[0] == 2 and leader_node.shape[0] > 0:
                 self._first_second = unit_vector(
-                    leaf_node[1, :] - leaf_node[0, :])
+                    leaf_node[0, :] - leaf_node[1, :])
 
-                dot_product = unit_vector(
-                    self._target - centroid).dot(self._first_second)
+                dot_product = self._centroid_to_target.dot(self._first_second)
                 if not self._set_theta:
                     self._set_theta = True
                     self._theta = np.sign(dot_product) * np.pi/2
-                d_to_leader = np.linalg.norm(self._target - leader_node)
-                d_to_target = np.linalg.norm(self._centroid_to_target)
-                if d_to_leader > d_to_target:
+                target_to_leader = leader_node - self._target
+                target_to_centroid = centroid - self._target
+                d_to_leader = np.linalg.norm(target_to_leader)
+                d_to_target = np.linalg.norm(target_to_centroid)
+
+                # Unreliable condition, must double check further
+                if d_to_leader > d_to_target \
+                        and unit_vector(target_to_leader).dot(unit_vector(target_to_centroid)) > 0.95:
                     self._set_theta = False
-                    # self._theta = 0.0
             else:
                 self._theta = 0.0
 
-            # if self._set_theta and time.time() - self._start_time >= 30:
-            #     self._set_theta = False
             # Get the 2 leaf node to decide what direction to steer
             u_nom_flipped = np.array([[np.cos(self._theta), -np.sin(self._theta)],
-                                    [np.sin(self._theta), np.cos(self._theta)]]).dot(u_nom.reshape(2, 1))
+                                      [np.sin(self._theta), np.cos(self._theta)]]).dot(u_nom.reshape(2, 1))
             # Animal steering
             u_nom = u_nom + u_nom_flipped.reshape((2,))
             if np.linalg.norm(u_nom) > self._max_u:
                 u_nom = self._max_u * utils.unit_vector(u_nom)
 
-            # Get the 2 ends
-
-        # if self._is_leaf:
-        #     other_leaf_state = None
-        #     # Get the other leaf node:
-        #     for comm in all_comms:
-        #         if "leaf" in comm.keys() and id != comm["id"]:
-        #             other_leaf_state = comm["state"]
-
-        #     u_nom += (self._target - pose)
-        #     if np.linalg.norm(u_nom) > self._max_u:
-        #         u_nom = self._max_u * utils.unit_vector(u_nom)
-
         A_r_a, b_r_a = self._robot_animal_formation(state=state,
                                                     animal_states=animal_states,
-                                                    min_distance=120.0,
+                                                    min_distance=self._min_animal_d,
                                                     gamma_min=1.0,
-                                                    max_distance=150.0,
+                                                    max_distance=self._max_animal_d,
                                                     gamma_max=1.0,
                                                     relax_d_min=False,
                                                     relax_d_max=True)
@@ -235,9 +239,9 @@ class DecentralisedCBF(Behavior):
 
         A_r_r, b_r_r = self._robot_robot_formation(state=state,
                                                    robot_states=other_states,
-                                                   min_distance=150.0,
+                                                   min_distance=self._min_robot_d,
                                                    gamma_min=1.0,
-                                                   max_distance=170.0,
+                                                   max_distance=self._max_robot_d,
                                                    gamma_max=1.0,
                                                    relax_d_min=False,
                                                    relax_d_max=not enforce_formation)
