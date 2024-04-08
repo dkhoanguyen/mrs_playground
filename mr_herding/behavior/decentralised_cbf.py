@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import time
 import pygame
 import numpy as np
 from collections import deque
@@ -20,7 +21,6 @@ class DecentralisedCBF(Behavior):
                  max_num: int):
         super().__init__()
 
-        self._target_pos = np.array([500, 350])
         self._max_u = max_u
 
         self._pose = np.zeros(2)
@@ -35,6 +35,14 @@ class DecentralisedCBF(Behavior):
         self._is_leader = False
         self._is_leaf = False
 
+        self._theta = 0
+        self._set_theta = False
+
+        self._centroid_to_target = np.zeros(2)
+        self._first_second = np.zeros(2)
+
+        self._start_time = time.time()
+
     def update(self, *args, **kwargs):
         state: np.ndarray = kwargs["state"]
         other_states: np.ndarray = kwargs["robot_states"]
@@ -48,13 +56,25 @@ class DecentralisedCBF(Behavior):
         self._pose = state[:2]
         velocity = state[2:4]
 
-        self._target = np.array([1200, 350])
+        self._target = np.array([300, 350])
 
         A = np.empty((0, 4))
         b = np.empty((0, 1))
 
         comms.update({"converge_to_animal": self._converge_to_animal})
         comms.update({"adj_vector": self._adj_vector})
+        comms.update({"leaf": self._is_leaf})
+        comms.update({"leader": self._is_leader})
+
+        # Calculate robots centroid which can be approximated as the centroid
+        # of the animals
+        all_robots_states = np.empty((0, 2))
+        for comm in all_comms:
+            if "id" not in comm.keys():
+                continue
+            all_robots_states = np.vstack(
+                (all_robots_states, comm["state"][:2]))
+        centroid = np.average(all_robots_states, axis=0)
 
         # If no animal, move toward the initial herding pose
         if animal_states.shape[0] == 0:
@@ -145,20 +165,61 @@ class DecentralisedCBF(Behavior):
             if leader_node_id == id:
                 self._is_leader = True
 
-        theta = np.pi/2
         if enforce_formation:
-            u_nom_flipped = np.array([[np.cos(theta), -np.sin(theta)],
-                                      [np.sin(theta), np.cos(theta)]]).dot(u_nom.reshape(2, 1))
+            leaf_node = np.empty((0, 2))
+            leader_node = np.empty((0, 2))
+
+            for comm in all_comms:
+                if "leaf" in comm.keys() and comm["leaf"]:
+                    leaf_node = np.vstack((leaf_node, comm["state"][:2]))
+                if "leader" in comm.keys() and comm["leader"]:
+                    leader_node = comm["state"][:2]
+
+            # first_d_to_target = np.linalg.norm(
+            #     self._target - first_leaf_node[:2])
+            # second_d_to_target = np.linalg.norm(
+            #     self._target - second_leaf_node[:2])
+
+            self._centroid_to_target = unit_vector(self._target - centroid)
+            if leaf_node.shape[0] == 2 and leader_node.shape[0] > 0:
+                self._first_second = unit_vector(
+                    leaf_node[1, :] - leaf_node[0, :])
+
+                dot_product = unit_vector(
+                    self._target - centroid).dot(self._first_second)
+                if not self._set_theta:
+                    self._set_theta = True
+                    self._theta = np.sign(dot_product) * np.pi/2
+                d_to_leader = np.linalg.norm(self._target - leader_node)
+                d_to_target = np.linalg.norm(self._centroid_to_target)
+                if d_to_leader > d_to_target:
+                    self._set_theta = False
+                    # self._theta = 0.0
+            else:
+                self._theta = 0.0
+
+            # if self._set_theta and time.time() - self._start_time >= 30:
+            #     self._set_theta = False
+            # Get the 2 leaf node to decide what direction to steer
+            u_nom_flipped = np.array([[np.cos(self._theta), -np.sin(self._theta)],
+                                    [np.sin(self._theta), np.cos(self._theta)]]).dot(u_nom.reshape(2, 1))
+            # Animal steering
             u_nom = u_nom + u_nom_flipped.reshape((2,))
             if np.linalg.norm(u_nom) > self._max_u:
                 u_nom = self._max_u * utils.unit_vector(u_nom)
 
             # Get the 2 ends
 
-        if self._is_leaf:
-            u_nom +=  (self._target - pose)
-            if np.linalg.norm(u_nom) > self._max_u:
-                u_nom = self._max_u * utils.unit_vector(u_nom)
+        # if self._is_leaf:
+        #     other_leaf_state = None
+        #     # Get the other leaf node:
+        #     for comm in all_comms:
+        #         if "leaf" in comm.keys() and id != comm["id"]:
+        #             other_leaf_state = comm["state"]
+
+        #     u_nom += (self._target - pose)
+        #     if np.linalg.norm(u_nom) > self._max_u:
+        #         u_nom = self._max_u * utils.unit_vector(u_nom)
 
         A_r_a, b_r_a = self._robot_animal_formation(state=state,
                                                     animal_states=animal_states,
@@ -202,6 +263,14 @@ class DecentralisedCBF(Behavior):
         pygame.draw.line(
             screen, pygame.Color("yellow"),
             tuple(self._pose), tuple(self._pose + 5 * (self._u)))
+
+        pygame.draw.line(
+            screen, pygame.Color("yellow"),
+            tuple(np.array([500, 300])), tuple(np.array([500, 300]) + 50 * (self._centroid_to_target)))
+        pygame.draw.line(
+            screen, pygame.Color("white"),
+            tuple(np.array([500, 300])), tuple(np.array([500, 300]) + 50 * (self._first_second)))
+
         pygame.draw.circle(screen, pygame.Color("white"),
                            tuple(self._target), 30, 1)
         return super().display(screen)
