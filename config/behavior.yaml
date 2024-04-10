@@ -14,12 +14,12 @@ math_flock:
 
 herding_apf:
   params:
-    Cs: 3
+    Cs: 1
     Cr: 1
     Cv: 1.5
     Co: 1.7
-    distance_to_target: 150.0
-    interagent_spacing: 170.0
+    distance_to_target: 120.0
+    interagent_spacing: 150.0
     obstacle_range: 40.0
     sensing_range: 1000.0
 
@@ -47,6 +47,6 @@ herding_cbf:
     max_robot_d: 170
     min_animal_d: 120
     max_animal_d: 150
-    collision_avoidance_d: 120
+    collision_avoidance_d: 60
     converge_std: 10
     herding_target: [350, 200]

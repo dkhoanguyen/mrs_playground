@@ -74,9 +74,11 @@ class GradPotentionFunc(object):
         xij_norm = np.linalg.norm(xij)
 
         n_xij_d = xij_norm - d
-        fx = -np.exp(-n_xij_d)
-        gx = np.tanh(n_xij_d)
+        # fx = -np.exp(-n_xij_d)
+        # gx = np.tanh(n_xij_d)
 
-        # Potential function
-        px = -fx*(gx**2)
+        # # Potential function
+        # px = -fx*(gx**2)
+        fx = 1/(1 + np.exp(-n_xij_d)) * np.tanh(n_xij_d)
+        px = -fx
         return px

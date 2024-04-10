@@ -61,6 +61,9 @@ def main():
                                   config=dynamic_config,
                                   dynamic_type=DoubleIntegrator)
     # Add behavior as well
+    behavior_config['herding_cbf']['params'].update({"max_num": len(robots),
+                                                     "sensing_range": entity_config['robot']["sensing_range"],
+                                                     "comms_range": entity_config['robot']["comms_range"]})
     PlaygroundFactory.add_behavior(entities=robots,
                                    config=behavior_config['herding_cbf']['params'],
                                    behavior_type=DecentralisedCBF,

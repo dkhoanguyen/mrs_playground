@@ -34,17 +34,8 @@ class Robot(Entity):
 
         self._behavior_state = None
 
-        self._is_leader = False
-        self._role = "None"
-
-        self._left_id = 0
-        self._right_id = 0
-
     def __str__(self):
         return "robot"
-
-    def set_leader(self):
-        self._is_leader = True
 
     def update(self, *args, **kwargs):
         # Herding target
