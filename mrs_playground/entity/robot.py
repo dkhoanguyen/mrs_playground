@@ -19,7 +19,7 @@ class Robot(Entity):
         super().__init__(
             pose=pose,
             velocity=velocity,
-            image_path='leader-boid.png')
+            image_path='drone.png')
 
         self._id = id
         self._max_v = max_v

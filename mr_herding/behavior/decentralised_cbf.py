@@ -485,7 +485,7 @@ class DecentralisedCBF(Behavior):
         # Control bound synthesis
         H[2, 2] = p_omega
         # Slack variable
-        H[3, 3] = 1.0
+        H[3, 3] = 10.0
         p = -2 * np.array([u_nom[0], u_nom[1], omega_0 * p_omega, 0.0])
         x = solve_qp(P=H, q=p, G=A, h=b, lb=lb, ub=ub,
                      solver="cvxopt")  # osqp or cvxopt

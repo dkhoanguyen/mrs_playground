@@ -92,8 +92,9 @@ class SimplePlayground(object):
 
         # All comms
         all_comms = []
-        for entity in self._entities['robot']:
-            all_comms.append(entity.comms)
+        if 'robot' in self._entity_names:
+            for entity in self._entities['robot']:
+                all_comms.append(entity.comms)
 
         # Update all entities
         for entity_type in self._entities.keys():

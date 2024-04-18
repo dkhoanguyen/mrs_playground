@@ -191,9 +191,7 @@ class MathematicalFlock(Behavior):
         # print(self._densities)
 
         qdot = local_clustering + \
-            flocking + self._flocking_condition * global_clustering + \
-            (1 - self._flocking_condition) * \
-            remain_in_bound_u + 2 * self._densities
+            flocking + self._flocking_condition * global_clustering + 2 * self._densities
 
         avoidance_v = np.zeros_like(animal_states[:, 2:4])
         for idx in range(animal_states.shape[0]):
@@ -201,7 +199,7 @@ class MathematicalFlock(Behavior):
             u_pred = self._predator_avoidance_term(
                 si=qi, r=self._danger_range, k=4)
             avoidance_v[idx, :] += (u_pred + 5 * self._densities[idx, :]
-                                      * np.linalg.norm(utils.unit_vector(u_pred)))
+                                    * np.linalg.norm(utils.unit_vector(u_pred)))
 
         # x_t = animal_states[:,:4]
         # x_t_1 = self._dynamics.step(x_t=x_t,u_t=qdot)
@@ -226,9 +224,9 @@ class MathematicalFlock(Behavior):
                 for edge in cluster:
                     pygame.draw.line(screen, pygame.Color("white"), tuple(edge[0, :2]),
                                      tuple(edge[1, :2]))
-        for idx, animal in enumerate(self._animals):
-            pygame.draw.line(screen, pygame.Color("white"), tuple(animal.state[:2]),
-                                     tuple(animal.state[:2] + 100 * self._densities[idx,:]))
+        # for idx, animal in enumerate(self._animals):
+        #     pygame.draw.line(screen, pygame.Color("white"), tuple(animal.state[:2]),
+        #                              tuple(animal.state[:2] + 100 * self._densities[idx,:]))
 
     # Mathematical model of flocking
     def _flocking(self, animal_states: np.ndarray,
