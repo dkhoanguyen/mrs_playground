@@ -26,7 +26,8 @@ class DecentralisedCBF(Behavior):
                  max_animal_d: float,
                  collision_avoidance_d: float,
                  converge_std: float,
-                 herding_target: np.ndarray):
+                 herding_target: np.ndarray,
+                 coverage: float):
         super().__init__()
 
         self._max_u = max_u
@@ -40,6 +41,7 @@ class DecentralisedCBF(Behavior):
         self._collision_avoidance_d = collision_avoidance_d
         self._converge_std = converge_std
         self._target = np.array(herding_target)
+        self._coverage = coverage
 
         self._pose = np.zeros(2)
         self._u = np.zeros(2)
@@ -56,8 +58,12 @@ class DecentralisedCBF(Behavior):
         self._theta = 0
         self._set_theta = False
 
+        # Debugging and plotting
         self._centroid_to_target = np.zeros(2)
         self._first_second = np.zeros(2)
+
+        self._animal_heading = np.zeros(2)
+        self._in_vision_animal_pos = np.zeros(2)
 
     def update(self, *args, **kwargs):
         state: np.ndarray = kwargs["state"]
@@ -161,15 +167,16 @@ class DecentralisedCBF(Behavior):
                             (other_not_converged, comm["state"]))
 
             if other_converged.shape[0] > 0 and other_not_converged.shape[0] > 0:
-                floating_other_states = np.empty((0,6))
+                floating_other_states = np.empty((0, 6))
                 # Repulsion control for guiding robots towards the formation
                 # u_repulse = self._repulsion(
                 #     xi=xi, xj=other_not_converged[:,:2], vi=velocity,
                 #     d=self._min_robot_d, gain=10.0)
                 # u_nom += u_repulse
-                floating_other_states = np.vstack((floating_other_states, other_not_converged))
+                floating_other_states = np.vstack(
+                    (floating_other_states, other_not_converged))
 
-                # 
+                #
         if np.linalg.norm(u_nom) > self._max_u:
             u_nom = self._max_u * utils.unit_vector(u_nom)
 
@@ -223,36 +230,54 @@ class DecentralisedCBF(Behavior):
                     leader_node = comm["state"][:2]
 
             self._centroid_to_target = unit_vector(self._target - centroid)
-            if leaf_node.shape[0] == 2 and leader_node.shape[0] > 0:
-                self._first_second = unit_vector(
-                    leaf_node[0, :] - leaf_node[1, :])
+            # if leaf_node.shape[0] == 2 and leader_node.shape[0] > 0:
+            #     self._first_second = unit_vector(
+            #         leaf_node[0, :] - leaf_node[1, :])
 
-                dot_product = self._centroid_to_target.dot(self._first_second)
-                if not self._set_theta:
-                    self._set_theta = True
-                    self._theta = np.sign(dot_product) * np.pi/2
-                target_to_leader = leader_node - self._target
-                target_to_centroid = centroid - self._target
-                d_to_leader = np.linalg.norm(target_to_leader)
-                d_to_target = np.linalg.norm(target_to_centroid)
-                d_to_leaf_1 = np.linalg.norm(leaf_node[0, :] - self._target)
-                d_to_leaf_2 = np.linalg.norm(leaf_node[1, :] - self._target)
+            #     dot_product = self._centroid_to_target.dot(self._first_second)
+            #     if not self._set_theta:
+            #         self._set_theta = True
+            #         self._theta = np.sign(dot_product) * np.pi/2
+            #     target_to_leader = leader_node - self._target
+            #     target_to_centroid = centroid - self._target
+            #     d_to_leader = np.linalg.norm(target_to_leader)
+            #     d_to_target = np.linalg.norm(target_to_centroid)
+            #     d_to_leaf_1 = np.linalg.norm(leaf_node[0, :] - self._target)
+            #     d_to_leaf_2 = np.linalg.norm(leaf_node[1, :] - self._target)
 
-                # print(dot_product)
-                # Unreliable condition, must double check further
-                if d_to_leader > d_to_target \
-                        and d_to_leader > d_to_leaf_1 \
-                        and d_to_leader > d_to_leaf_2 \
-                        and np.abs(d_to_leaf_1 - d_to_leaf_2) <= 10.0:
-                    self._set_theta = False
-            else:
-                self._theta = 0.0
-
-            # Get the 2 leaf node to decide what direction to steer
-            u_nom_flipped = np.array([[np.cos(self._theta), -np.sin(self._theta)],
-                                      [np.sin(self._theta), np.cos(self._theta)]]).dot(u_nom.reshape(2, 1))
+            #     # print(dot_product)
+            #     # Unreliable condition, must double check further
+            #     if d_to_leader > d_to_target \
+            #             and d_to_leader > d_to_leaf_1 \
+            #             and d_to_leader > d_to_leaf_2 \
+            #             and np.abs(d_to_leaf_1 - d_to_leaf_2) <= 10.0:
+            #         self._set_theta = False
+            # else:
+            #     self._theta = 0.0
             # Animal steering
-            u_nom = u_nom + u_nom_flipped.reshape((2,))
+            if self._is_leaf:
+                # Estimate overall animal heading
+                self._in_vision_animal_pos = np.average(
+                    animal_states[:, 0:2], axis=0)
+                self._animal_heading = np.average(
+                    animal_states[:, 2:4], axis=0)
+
+                animal_in_vision_to_target = self._target - self._in_vision_animal_pos
+                angle_to_target = angle_between_with_direction(
+                    animal_in_vision_to_target, self._animal_heading)
+                # print(id)
+                # print(angle_to_target)
+                # print("+++")
+                
+                self._theta = 5 * angle_to_target
+                if np.abs(self._theta) > np.pi/2:
+                    self._theta = np.sign(self._theta) * np.pi/2
+
+                # Get the 2 leaf node to decide what direction to steer
+                u_nom_flipped = np.array([[np.cos(self._theta), -np.sin(self._theta)],
+                                          [np.sin(self._theta), np.cos(self._theta)]]).dot(u_nom.reshape(2, 1))
+                u_nom = u_nom + 2 * u_nom_flipped.reshape((2,))
+
             if np.linalg.norm(u_nom) > self._max_u:
                 u_nom = self._max_u * utils.unit_vector(u_nom)
 
@@ -298,7 +323,7 @@ class DecentralisedCBF(Behavior):
                              p_omega=10000000.0,
                              omega_0=1.0)
 
-        self._u = u_nom
+        self._u = u
         self._prev_x = x
         return u
 
@@ -308,11 +333,8 @@ class DecentralisedCBF(Behavior):
             tuple(self._pose), tuple(self._pose + 5 * (self._u)))
 
         pygame.draw.line(
-            screen, pygame.Color("yellow"),
-            tuple(np.array([500, 300])), tuple(np.array([500, 300]) + 50 * (self._centroid_to_target)))
-        pygame.draw.line(
             screen, pygame.Color("white"),
-            tuple(np.array([500, 300])), tuple(np.array([500, 300]) + 50 * (self._first_second)))
+            tuple(self._in_vision_animal_pos), tuple(self._in_vision_animal_pos + 10 * (self._animal_heading)))
 
         pygame.draw.circle(screen, pygame.Color("white"),
                            tuple(self._target), 30, 1)
@@ -414,14 +436,37 @@ class DecentralisedCBF(Behavior):
         vi = state[2:4]
         vj = robot_states[:, 2:4]
 
-        A_dmin, b_dmin = MinDistance.build_constraint(
-            xi=xi, xj=xj, vi=vi, vj=vj,
-            ai=self._max_u, aj=self._max_u,
-            d=min_distance, gamma=gamma_min,
-            relax=relax_d_min)
+        # A_dmin, b_dmin = MinDistance.build_constraint(
+        #     xi=xi, xj=xj, vi=vi, vj=vj,
+        #     ai=self._max_u, aj=self._max_u,
+        #     d=min_distance, gamma=gamma_min,
+        #     relax=relax_d_min)
 
-        A = np.vstack((A, A_dmin))
-        b = np.vstack((b, b_dmin))
+        # A = np.vstack((A, A_dmin))
+        # b = np.vstack((b, b_dmin))
+
+        ri = min_distance
+        rj = np.ones(robot_states.shape[0]) * 0
+        weight = np.ones(robot_states.shape[0]) * 0.5
+
+        xi = state[:2]
+        xj = robot_states[:, :2]
+        vi = vi
+        vj = robot_states[:, 2:4]
+
+        A = np.empty((0, 4))
+        b = np.empty((0, 1))
+
+        planes = ORCA.construct_orca_planes(xi=xi, xj=xj, vi=vi, vj=vj,
+                                            ri=ri, rj=rj,
+                                            weight=weight,
+                                            buffered_r=0.0,
+                                            time_horizon=2.0)
+        if len(planes) > 0:
+            A_orca, b_ocra = ORCA.build_constraint(planes, vi,
+                                                   1.2)
+            A = np.vstack((A, A_orca,))
+            b = np.vstack((b, b_ocra,))
 
         A_dmax, b_dmax = MaxDistance.build_constraint(
             xi=xi, xj=xj, vi=vi, vj=vj,
@@ -485,7 +530,7 @@ class DecentralisedCBF(Behavior):
         # Control bound synthesis
         H[2, 2] = p_omega
         # Slack variable
-        H[3, 3] = 10.0
+        H[3, 3] = 1.0
         p = -2 * np.array([u_nom[0], u_nom[1], omega_0 * p_omega, 0.0])
         x = solve_qp(P=H, q=p, G=A, h=b, lb=lb, ub=ub,
                      solver="cvxopt")  # osqp or cvxopt

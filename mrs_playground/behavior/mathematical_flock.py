@@ -87,7 +87,8 @@ class MathematicalFlock(Behavior):
                  sensing_range: float,
                  danger_range: float,
                  initial_consensus: np.ndarray,
-                 max_v: np.ndarray):
+                 max_v: np.ndarray,
+                 distance: float):
         super().__init__()
         self._animals = []
         self._robots = []
@@ -101,6 +102,7 @@ class MathematicalFlock(Behavior):
         self._danger_range = danger_range
         self._consensus_pose = np.array(initial_consensus)
         self._max_v = max_v
+        self._distance = distance
 
         self._enable_flocking = True
 
@@ -425,14 +427,14 @@ class MathematicalFlock(Behavior):
 
             alpha_grad = self._gradient_term(
                 c=MathematicalFlock.C2_alpha, qi=qi, qj=qj,
-                r=MathematicalFlock.ALPHA_RANGE,
-                d=MathematicalFlock.ALPHA_DISTANCE)
+                r=self._distance,
+                d=self._distance)
 
             alpha_consensus = self._velocity_consensus_term(
                 c=MathematicalFlock.C2_alpha,
                 qi=qi, qj=qj,
                 pi=pi, pj=pj,
-                r=MathematicalFlock.ALPHA_RANGE)
+                r=self._distance)
             u_alpha = alpha_grad + alpha_consensus
         return u_alpha
 

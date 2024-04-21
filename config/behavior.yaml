@@ -6,6 +6,7 @@ math_flock:
     initial_consensus: [800, 350]
     max_v: 5
     dt: 0.1
+    distance: 40
   constants:
     c1_alpha: 3
     c1_beta: 20
@@ -43,10 +44,11 @@ herding_apf:
 herding_cbf:
   params:
     max_u: 10
-    min_robot_d: 150
-    max_robot_d: 170
+    min_robot_d: 120
+    max_robot_d: 150
     min_animal_d: 120
     max_animal_d: 150
-    collision_avoidance_d: 120
+    collision_avoidance_d: 80
     converge_std: 10
     herding_target: [350, 350]
+    coverage: 0.5

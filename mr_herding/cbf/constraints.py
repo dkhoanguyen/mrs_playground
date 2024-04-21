@@ -294,6 +294,20 @@ def angle_between(v1: np.ndarray, v2: np.ndarray):
     return np.arccos(np.clip(np.dot(u1, u2), -1.0, 1.0))
 
 
+def angle_between_with_direction(v1: np.ndarray, v2: np.ndarray):
+    dot_product = np.dot(v1, v2)
+    magnitude_v1 = np.linalg.norm(v1)
+    magnitude_v2 = np.linalg.norm(v2)
+    cos_theta = dot_product / (magnitude_v1 * magnitude_v2)
+    angle_radians = np.arccos(np.clip(cos_theta, -1.0, 1.0))
+    
+    # Determine the sign of the angle using the cross product
+    cross_product = np.cross(v1, v2)
+    if cross_product < 0:
+        angle_radians = -angle_radians
+    
+    return angle_radians
+
 def simple_vector_rotate(v: np.ndarray, theta: float):
     cs = np.cos(theta)
     sn = np.sin(theta)
