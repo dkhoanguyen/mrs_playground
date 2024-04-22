@@ -205,20 +205,44 @@ class MathematicalFlock(Behavior):
 
         # x_t = animal_states[:,:4]
         # x_t_1 = self._dynamics.step(x_t=x_t,u_t=qdot)
-
-        animal_states[:, 2:4] += qdot * self._dt + avoidance_v
-        pdot = animal_states[:, 2:4]
-        animal_states[:, :2] += pdot * self._dt
-
         animal: Animal
         for idx, animal in enumerate(self._animals):
-            # Scale velocity
-            if np.linalg.norm(animal_states[idx, 2:4]) > self._max_v:
-                animal_states[idx, 2:4] = self._max_v * \
-                    utils.unit_vector(animal_states[idx, 2:4])
+            # Velocity of animal ith
+            velocity = animal_states[idx, 2:4] + avoidance_v[idx, :] + \
+                qdot[idx, :] * self._dt
+            if np.linalg.norm(velocity) > self._max_v:
+                velocity = self._max_v * utils.unit_vector(velocity)
 
-            animal._velocity = animal_states[idx, 2:4]
-            animal._pose = animal_states[idx, :2]
+            # Next expected position
+            next_pose = animal_states[idx, 0:2] + velocity * self._dt
+
+            # u_t = self._simple_pure_pursuit(state=animal_states[idx, :],
+            #                                 target_state=next_pose,
+            #                                 lookahead=10.0)
+            # x_t_1 = self._state_update(x_t=animal_states[idx, :], u_t=u_t)
+            # heading = np.array([1.0*np.cos(x_t_1[2]), 1.0*np.sin(x_t_1[2])])
+
+            # animal._velocity = heading
+            # animal._pose = x_t_1[:2]
+            animal._velocity = velocity
+            animal._pose = next_pose
+
+            # Simple stanley controller
+            # Assuming next pose for cross-track error calculation
+
+        # animal_states[:, 2:4] += qdot * self._dt + avoidance_v
+        # pdot = animal_states[:, 2:4]
+        # animal_states[:, :2] += pdot * self._dt
+
+        # animal: Animal
+        # for idx, animal in enumerate(self._animals):
+        #     # Scale velocity
+        #     if np.linalg.norm(animal_states[idx, 2:4]) > self._max_v:
+        #         animal_states[idx, 2:4] = self._max_v * \
+        #             utils.unit_vector(animal_states[idx, 2:4])
+
+        #     animal._velocity = animal_states[idx, 2:4]
+        #     animal._pose = animal_states[idx, :2]
 
     def display(self, screen: pygame.Surface):
         if self._clusters is not None and len(self._clusters) > 0 and self._plot_cluster:
@@ -239,9 +263,6 @@ class MathematicalFlock(Behavior):
         beta_adjacency_matrix = self._get_beta_adjacency_matrix(animal_states,
                                                                 self._obstacles,
                                                                 r=self._sensing_range)
-        # delta_adjacency_matrix = self._get_delta_adjacency_matrix(animal_states,
-        #                                                           self._robots,
-        #                                                           r=self._sensing_range)
 
         for idx in range(animal_states.shape[0]):
             # Flocking terms
@@ -256,13 +277,6 @@ class MathematicalFlock(Behavior):
                 idx=idx, obstacle_idxs=obstacle_idxs,
                 beta_adj_matrix=beta_adjacency_matrix,
                 animal_states=animal_states)
-
-            # # Robot
-            # shepherd_idxs = delta_adjacency_matrix[idx]
-            # u_delta = self._calc_shepherd_interaction_control(
-            #     idx=idx, shepherd_idxs=shepherd_idxs,
-            #     delta_adj_matrix=delta_adjacency_matrix,
-            #     animal_states=animal_states)
 
             # Ultimate flocking model
             u[idx] = u_alpha + u_beta
@@ -643,3 +657,32 @@ class MathematicalFlock(Behavior):
         np.fill_diagonal(deg_matrix, diag_sum)
         laplacian_matrix = deg_matrix - adj_matrix
         return laplacian_matrix
+
+    def _simple_pure_pursuit(self, state: np.ndarray, target_state: np.ndarray, lookahead: float):
+        err = target_state[:2] - state[:2]
+        d_err = np.linalg.norm(err)
+        lookahead_pose = state[:2] + (lookahead/d_err) * err
+
+        # calculate the desired heading
+        desired_heading = np.arctan2(
+            lookahead_pose[1] - state[1], lookahead_pose[0] - state[0])
+
+        # current_heading, which for now is equivalent to velocity heading
+        current_heading = np.arctan2(state[3], state[2])
+
+        # Calculate heading error
+        heading_error = desired_heading - \
+            utils.normalize_angle(current_heading)
+
+        v = min(self._max_v, 5.0 * d_err)
+        w = min(1.57, 5.0 * heading_error)
+
+        return np.array([v, w])
+
+    def _state_update(self, x_t: np.ndarray, u_t: np.ndarray):
+        x_t_1 = x_t.copy()
+        current_theta = np.arctan2(x_t[3], x_t[2])
+        x_t_1[0] = x_t[0] + u_t[0] * np.cos(current_theta) * self._dt
+        x_t_1[1] = x_t[1] + u_t[0] * np.sin(current_theta) * self._dt
+        x_t_1[2] = current_theta + u_t[1] * self._dt
+        return x_t_1

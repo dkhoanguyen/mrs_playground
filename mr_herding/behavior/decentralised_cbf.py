@@ -55,7 +55,6 @@ class DecentralisedCBF(Behavior):
         self._is_leader = False
         self._is_leaf = False
 
-        self._theta = 0
         self._set_theta = False
 
         # Debugging and plotting
@@ -138,7 +137,7 @@ class DecentralisedCBF(Behavior):
         self._d_to_animal.append(all_d_to_animal[0])
         if len(self._d_to_animal) >= self._d_to_animal.maxlen:
             if np.std(self._d_to_animal) < self._converge_std \
-                    and np.mean(self._d_to_animal) < self._max_animal_d + self._converge_std:
+                    and np.mean(self._d_to_animal) <= self._max_animal_d + self._converge_std:
                 self._converge_to_animal = True
             else:
                 self._converge_to_animal = False
@@ -219,7 +218,7 @@ class DecentralisedCBF(Behavior):
             if leader_node_id == id:
                 self._is_leader = True
 
-        if enforce_formation:
+        if self._converge_to_animal:
             leaf_node = np.empty((0, 2))
             leader_node = np.empty((0, 2))
 
@@ -230,53 +229,25 @@ class DecentralisedCBF(Behavior):
                     leader_node = comm["state"][:2]
 
             self._centroid_to_target = unit_vector(self._target - centroid)
-            # if leaf_node.shape[0] == 2 and leader_node.shape[0] > 0:
-            #     self._first_second = unit_vector(
-            #         leaf_node[0, :] - leaf_node[1, :])
+            
+            # Estimate overall animal heading
+            self._in_vision_animal_pos = np.average(
+                animal_states[:, 0:2], axis=0)
+            self._animal_heading = np.average(
+                animal_states[:, 2:4], axis=0)
 
-            #     dot_product = self._centroid_to_target.dot(self._first_second)
-            #     if not self._set_theta:
-            #         self._set_theta = True
-            #         self._theta = np.sign(dot_product) * np.pi/2
-            #     target_to_leader = leader_node - self._target
-            #     target_to_centroid = centroid - self._target
-            #     d_to_leader = np.linalg.norm(target_to_leader)
-            #     d_to_target = np.linalg.norm(target_to_centroid)
-            #     d_to_leaf_1 = np.linalg.norm(leaf_node[0, :] - self._target)
-            #     d_to_leaf_2 = np.linalg.norm(leaf_node[1, :] - self._target)
+            animal_in_vision_to_target = self._target - self._in_vision_animal_pos
+            angle_to_target = angle_between_with_direction(
+                animal_in_vision_to_target, self._animal_heading)
+            
+            theta = 5 * angle_to_target
+            if np.abs(theta) > np.pi/2:
+                theta = np.sign(theta) * np.pi/2
 
-            #     # print(dot_product)
-            #     # Unreliable condition, must double check further
-            #     if d_to_leader > d_to_target \
-            #             and d_to_leader > d_to_leaf_1 \
-            #             and d_to_leader > d_to_leaf_2 \
-            #             and np.abs(d_to_leaf_1 - d_to_leaf_2) <= 10.0:
-            #         self._set_theta = False
-            # else:
-            #     self._theta = 0.0
-            # Animal steering
-            if self._is_leaf:
-                # Estimate overall animal heading
-                self._in_vision_animal_pos = np.average(
-                    animal_states[:, 0:2], axis=0)
-                self._animal_heading = np.average(
-                    animal_states[:, 2:4], axis=0)
-
-                animal_in_vision_to_target = self._target - self._in_vision_animal_pos
-                angle_to_target = angle_between_with_direction(
-                    animal_in_vision_to_target, self._animal_heading)
-                # print(id)
-                # print(angle_to_target)
-                # print("+++")
-                
-                self._theta = 5 * angle_to_target
-                if np.abs(self._theta) > np.pi/2:
-                    self._theta = np.sign(self._theta) * np.pi/2
-
-                # Get the 2 leaf node to decide what direction to steer
-                u_nom_flipped = np.array([[np.cos(self._theta), -np.sin(self._theta)],
-                                          [np.sin(self._theta), np.cos(self._theta)]]).dot(u_nom.reshape(2, 1))
-                u_nom = u_nom + 2 * u_nom_flipped.reshape((2,))
+            # Get the 2 leaf node to decide what direction to steer
+            u_nom_flipped = np.array([[np.cos(theta), -np.sin(theta)],
+                                        [np.sin(theta), np.cos(theta)]]).dot(u_nom.reshape(2, 1))
+            u_nom = u_nom + u_nom_flipped.reshape((2,))
 
             if np.linalg.norm(u_nom) > self._max_u:
                 u_nom = self._max_u * utils.unit_vector(u_nom)
@@ -323,7 +294,7 @@ class DecentralisedCBF(Behavior):
                              p_omega=10000000.0,
                              omega_0=1.0)
 
-        self._u = u
+        self._u = u_nom
         self._prev_x = x
         return u
 
@@ -464,7 +435,7 @@ class DecentralisedCBF(Behavior):
                                             time_horizon=2.0)
         if len(planes) > 0:
             A_orca, b_ocra = ORCA.build_constraint(planes, vi,
-                                                   1.2)
+                                                   1.0)
             A = np.vstack((A, A_orca,))
             b = np.vstack((b, b_ocra,))
 
@@ -539,7 +510,7 @@ class DecentralisedCBF(Behavior):
         if x is None:
             if np.linalg.norm(vi) > 0:
                 # Slow to stop
-                u = (-vi)
+                u = 2.0 * (-vi)
             else:
                 u = np.zeros(2)
         else:

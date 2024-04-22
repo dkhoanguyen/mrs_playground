@@ -82,6 +82,34 @@ def unit_vector(vector):
     return np.array(vector) / (1+np.linalg.norm(vector))
 
 
+def angle_between(v1: np.ndarray, v2: np.ndarray):
+    u1 = unit_vector(v1)
+    u2 = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(u1, u2), -1.0, 1.0))
+
+
+def angle_between_with_direction(v1: np.ndarray, v2: np.ndarray):
+    dot_product = np.dot(v1, v2)
+    magnitude_v1 = np.linalg.norm(v1)
+    magnitude_v2 = np.linalg.norm(v2)
+    cos_theta = dot_product / (magnitude_v1 * magnitude_v2)
+    angle_radians = np.arccos(np.clip(cos_theta, -1.0, 1.0))
+    
+    # Determine the sign of the angle using the cross product
+    cross_product = np.cross(v1, v2)
+    if cross_product < 0:
+        angle_radians = -angle_radians
+    
+    return angle_radians
+
+def normalize_angle(angle):
+    # Normalize the angle to [-pi, pi]
+    while angle > math.pi:
+        angle -= 2 * math.pi
+    while angle < -math.pi:
+        angle += 2 * math.pi
+    return angle
+
 class MathUtils():
 
     EPSILON = 0.1
