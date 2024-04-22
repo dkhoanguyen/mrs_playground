@@ -193,18 +193,20 @@ class DecentralisedCBF(Behavior):
         if np.all(reach_consensus == 1):
             enforce_formation = True
 
-            # Construct adjacency matrix
-            for comm in all_comms:
-                adj_id = comm["id"]
-                adj_state = comm["state"]
+        # Construct adjacency matrix
+        for comm in all_comms:
+            adj_id = comm["id"]
+            adj_state = comm["state"]
 
-                if np.linalg.norm(pose - adj_state[:2]) < self._sensing_range \
-                        and id != adj_id:
-                    self._adj_vector[adj_id] = 1.0
+            if np.linalg.norm(pose - adj_state[:2]) < self._sensing_range \
+                    and id != adj_id:
+                self._adj_vector[adj_id] = 1.0
+            else:
+                self._adj_vector[adj_id] = 0.0
 
-            # If leaf node
-            if np.sum(self._adj_vector) == 1:
-                self._is_leaf = True
+        # If leaf node
+        if np.sum(self._adj_vector) == 1:
+            self._is_leaf = True
 
             # Reconstruct adj_matrix from all vector
             for comm in all_comms:
@@ -244,9 +246,9 @@ class DecentralisedCBF(Behavior):
             if np.abs(theta) > np.pi/2:
                 theta = np.sign(theta) * np.pi/2
 
-            # Get the 2 leaf node to decide what direction to steer
             u_nom_flipped = np.array([[np.cos(theta), -np.sin(theta)],
                                         [np.sin(theta), np.cos(theta)]]).dot(u_nom.reshape(2, 1))
+            # if self._is_leaf:
             u_nom = u_nom + u_nom_flipped.reshape((2,))
 
             if np.linalg.norm(u_nom) > self._max_u:
@@ -265,7 +267,7 @@ class DecentralisedCBF(Behavior):
         b = np.vstack((b, b_r_a))
 
         A_r_r, b_r_r = self._robot_robot_formation(state=state,
-                                                   robot_states=floating_other_states,
+                                                   robot_states=other_states,
                                                    min_distance=self._min_robot_d,
                                                    gamma_min=1.0,
                                                    max_distance=self._max_robot_d,

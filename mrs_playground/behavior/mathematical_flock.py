@@ -185,23 +185,19 @@ class MathematicalFlock(Behavior):
 
         flocking = self._flocking(animal_states, robot_states)
 
-        remain_in_bound_u = self._calc_remain_in_boundary_control(
-            animal_states, self._boundary, k=1)
-
         self._densities = self._herd_density(animal_states=animal_states,
                                              robot_states=robot_states)
         # print(self._densities)
 
         qdot = local_clustering + \
-            flocking + self._flocking_condition * global_clustering + 2 * self._densities
+            flocking + self._flocking_condition * global_clustering
 
         avoidance_v = np.zeros_like(animal_states[:, 2:4])
         for idx in range(animal_states.shape[0]):
             qi = animal_states[idx, :2]
             u_pred = self._predator_avoidance_term(
                 si=qi, r=self._danger_range, k=4)
-            avoidance_v[idx, :] += (u_pred + 5 * self._densities[idx, :]
-                                    * np.linalg.norm(utils.unit_vector(u_pred)))
+            avoidance_v[idx, :] += u_pred + 5 * self._densities[idx,:2]
 
         # x_t = animal_states[:,:4]
         # x_t_1 = self._dynamics.step(x_t=x_t,u_t=qdot)
@@ -226,23 +222,6 @@ class MathematicalFlock(Behavior):
             # animal._pose = x_t_1[:2]
             animal._velocity = velocity
             animal._pose = next_pose
-
-            # Simple stanley controller
-            # Assuming next pose for cross-track error calculation
-
-        # animal_states[:, 2:4] += qdot * self._dt + avoidance_v
-        # pdot = animal_states[:, 2:4]
-        # animal_states[:, :2] += pdot * self._dt
-
-        # animal: Animal
-        # for idx, animal in enumerate(self._animals):
-        #     # Scale velocity
-        #     if np.linalg.norm(animal_states[idx, 2:4]) > self._max_v:
-        #         animal_states[idx, 2:4] = self._max_v * \
-        #             utils.unit_vector(animal_states[idx, 2:4])
-
-        #     animal._velocity = animal_states[idx, 2:4]
-        #     animal._pose = animal_states[idx, :2]
 
     def display(self, screen: pygame.Surface):
         if self._clusters is not None and len(self._clusters) > 0 and self._plot_cluster:
@@ -286,7 +265,7 @@ class MathematicalFlock(Behavior):
                       robot_states: np.ndarray):
         herd_densities = np.zeros((animal_states.shape[0], 2))
         alpha_adjacency_matrix = self._get_alpha_adjacency_matrix(animal_states,
-                                                                  r=2 * self._sensing_range)
+                                                                  r=self._distance * 1.5)
         for idx in range(animal_states.shape[0]):
             # Density
             neighbor_idxs = alpha_adjacency_matrix[idx]
@@ -322,7 +301,7 @@ class MathematicalFlock(Behavior):
                           robot_states: np.ndarray,
                           k: float) -> np.ndarray:
         adj_matrix = self._get_alpha_adjacency_matrix(
-            animal_states=animal_states, r=self._sensing_range)
+            animal_states=animal_states, r=self._distance * 1.5)
         graph = nx.Graph(adj_matrix)
 
         clusters_idxs = [graph.subgraph(c).copy()

@@ -44,11 +44,11 @@ herding_apf:
 herding_cbf:
   params:
     max_u: 10
-    min_robot_d: 120
+    min_robot_d: 140
     max_robot_d: 150
     min_animal_d: 120
     max_animal_d: 150
-    collision_avoidance_d: 80
+    collision_avoidance_d: 100
     converge_std: 10
     herding_target: [350, 350]
     coverage: 0.5
