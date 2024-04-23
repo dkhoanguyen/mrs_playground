@@ -81,20 +81,6 @@ class DecentralisedCBF(Behavior):
         b = np.empty((0, 1))
 
         comms.update({"converge_to_animal": self._converge_to_animal})
-        comms.update({"adj_vector": self._adj_vector})
-        comms.update({"leaf": self._is_leaf})
-        comms.update({"leader": self._is_leader})
-        comms.update({"animals_in_vision": animal_states})
-
-        # Calculate robots centroid which can be approximated as the centroid
-        # of the animals
-        all_robots_states = np.empty((0, 2))
-        for comm in all_comms:
-            if "id" not in comm.keys():
-                continue
-            all_robots_states = np.vstack(
-                (all_robots_states, comm["state"][:2]))
-        centroid = np.average(all_robots_states, axis=0)
 
         # If no animal, move toward the initial herding pose
         if animal_states.shape[0] == 0:
@@ -129,9 +115,8 @@ class DecentralisedCBF(Behavior):
         xi = pose
         xj = animal_states[:, :2]
 
-        floating_other_states = other_states
-
         # Find closest animal
+        # Should change to closet cluster of animal
         all_d_to_animal = np.linalg.norm(xi - xj, axis=1)
         all_d_to_animal = np.sort(all_d_to_animal)
         self._d_to_animal.append(all_d_to_animal[0])
@@ -145,39 +130,10 @@ class DecentralisedCBF(Behavior):
         # Nominal Controller
         u_nom = np.zeros(2)
         # Edge following
+        # Need to rework this behavior but this is for future work
         u_edge_following = self._edge_following(
             xi=xi, xj=xj, vi=velocity, d=self._min_animal_d, gain=10.0)
         u_nom += u_edge_following
-
-        if self._converge_to_animal:
-            # Find neighboring robots that have converged to animal
-            other_converged = np.empty((0, 6))
-            other_not_converged = np.empty((0, 6))
-            for comm in all_comms:
-                if "id" not in comm.keys():
-                    continue
-                if comm["id"] != id \
-                        and np.linalg.norm(pose - comm["state"][:2]) <= self._sensing_range:
-                    if comm["converge_to_animal"]:
-                        other_converged = np.vstack(
-                            (other_converged, comm["state"]))
-                    else:
-                        other_not_converged = np.vstack(
-                            (other_not_converged, comm["state"]))
-
-            if other_converged.shape[0] > 0 and other_not_converged.shape[0] > 0:
-                floating_other_states = np.empty((0, 6))
-                # Repulsion control for guiding robots towards the formation
-                # u_repulse = self._repulsion(
-                #     xi=xi, xj=other_not_converged[:,:2], vi=velocity,
-                #     d=self._min_robot_d, gain=10.0)
-                # u_nom += u_repulse
-                floating_other_states = np.vstack(
-                    (floating_other_states, other_not_converged))
-
-                #
-        if np.linalg.norm(u_nom) > self._max_u:
-            u_nom = self._max_u * utils.unit_vector(u_nom)
 
         # CBF Constraints
         # Robot-animal formation
@@ -207,52 +163,44 @@ class DecentralisedCBF(Behavior):
         # If leaf node
         if np.sum(self._adj_vector) == 1:
             self._is_leaf = True
+        else:
+            self._is_leaf = False
 
-            # Reconstruct adj_matrix from all vector
-            for comm in all_comms:
-                adj_vector = comm["adj_vector"]
-                comm_id = comm["id"]
-                self._adj_matrix[comm_id, :] = adj_vector
+        # Reconstruct adj_matrix from all vector
+        for comm in all_comms:
+            adj_vector = comm["adj_vector"]
+            comm_id = comm["id"]
+            self._adj_matrix[comm_id, :] = adj_vector
 
-            self._adj_graph = nx.from_numpy_array(self._adj_matrix)
-            centrality = nx.betweenness_centrality(self._adj_graph)
-            leader_node_id = max(centrality, key=centrality.get)
-            if leader_node_id == id:
-                self._is_leader = True
+        self._adj_graph = nx.from_numpy_array(self._adj_matrix)
+        centrality = nx.betweenness_centrality(self._adj_graph)
+        leader_node_id = max(centrality, key=centrality.get)
+        if leader_node_id == id:
+            self._is_leader = True
 
-        if self._converge_to_animal:
-            leaf_node = np.empty((0, 2))
-            leader_node = np.empty((0, 2))
-
-            for comm in all_comms:
-                if "leaf" in comm.keys() and comm["leaf"]:
-                    leaf_node = np.vstack((leaf_node, comm["state"][:2]))
-                if "leader" in comm.keys() and comm["leader"]:
-                    leader_node = comm["state"][:2]
-
-            self._centroid_to_target = unit_vector(self._target - centroid)
-            
+        if enforce_formation:
             # Estimate overall animal heading
-            self._in_vision_animal_pos = np.average(
+            in_vision_animal_pos = np.average(
                 animal_states[:, 0:2], axis=0)
-            self._animal_heading = np.average(
+            in_vision_animal_heading = np.average(
                 animal_states[:, 2:4], axis=0)
 
-            animal_in_vision_to_target = self._target - self._in_vision_animal_pos
+            animal_in_vision_to_target = self._target - in_vision_animal_pos
             angle_to_target = angle_between_with_direction(
-                animal_in_vision_to_target, self._animal_heading)
-            
-            theta = 5 * angle_to_target
+                animal_in_vision_to_target, in_vision_animal_heading)
+
+            theta = 2.5 * angle_to_target
             if np.abs(theta) > np.pi/2:
                 theta = np.sign(theta) * np.pi/2
 
             u_nom_flipped = np.array([[np.cos(theta), -np.sin(theta)],
-                                        [np.sin(theta), np.cos(theta)]]).dot(u_nom.reshape(2, 1))
+                                      [np.sin(theta), np.cos(theta)]]).dot(u_nom.reshape(2, 1))
             # if self._is_leaf:
             u_nom = u_nom + u_nom_flipped.reshape((2,))
 
-            if np.linalg.norm(u_nom) > self._max_u:
-                u_nom = self._max_u * utils.unit_vector(u_nom)
+        # Scale down u
+        if np.linalg.norm(u_nom) > self._max_u:
+            u_nom = self._max_u * utils.unit_vector(u_nom)
 
         A_r_a, b_r_a = self._robot_animal_formation(state=state,
                                                     animal_states=animal_states,
@@ -267,6 +215,7 @@ class DecentralisedCBF(Behavior):
         b = np.vstack((b, b_r_a))
 
         A_r_r, b_r_r = self._robot_robot_formation(state=state,
+                                                   v_nom=u_nom,
                                                    robot_states=other_states,
                                                    min_distance=self._min_robot_d,
                                                    gamma_min=1.0,
@@ -276,14 +225,6 @@ class DecentralisedCBF(Behavior):
                                                    relax_d_max=not enforce_formation)
         A = np.vstack((A, A_r_r))
         b = np.vstack((b, b_r_r))
-
-        A_orca, b_orca = self._robot_robot_collision_avoidance(state=state,
-                                                               v_nom=utils.unit_vector(
-                                                                   u_nom)*self._max_u,
-                                                               robot_states=other_states,
-                                                               distance=self._collision_avoidance_d)
-        A = np.vstack((A, A_orca))
-        b = np.vstack((b, b_orca))
 
         u, x = self._solve_u(vi=velocity,
                              u_nom=u_nom,
@@ -295,7 +236,6 @@ class DecentralisedCBF(Behavior):
                                  [self._max_u, self._max_u, np.inf, np.inf]),
                              p_omega=10000000.0,
                              omega_0=1.0)
-
         self._u = u_nom
         self._prev_x = x
         return u
@@ -325,11 +265,8 @@ class DecentralisedCBF(Behavior):
                                                     d=d)
             # Obtain v
             v = gain * p * utils.unit_vector(xij)
-            # v = -xij
             # P Controller to obtain control u
             v_sum += v
-        # if np.linalg.norm(v_sum) > 10.0:
-        #     v_sum = utils.unit_vector(v_sum) * 10.0
         u = 10 * (v_sum - vi)
         return u
 
@@ -352,8 +289,6 @@ class DecentralisedCBF(Behavior):
             v_flipped = np.array([[np.cos(theta), -np.sin(theta)],
                                   [np.sin(theta), np.cos(theta)]]).dot(v.reshape(2, 1))
             v_sum += v_flipped.reshape((2,))
-        # if np.linalg.norm(v_sum) > 10.0:
-        #     v_sum = utils.unit_vector(v_sum) * 10.0
         u = (v_sum - vi)
         return u
 
@@ -394,6 +329,7 @@ class DecentralisedCBF(Behavior):
         return A, b
 
     def _robot_robot_formation(self, state: np.ndarray,
+                               v_nom: np.ndarray,
                                robot_states: np.ndarray,
                                min_distance: float,
                                gamma_min: float,
@@ -408,15 +344,6 @@ class DecentralisedCBF(Behavior):
         xj = robot_states[:, :2]
         vi = state[2:4]
         vj = robot_states[:, 2:4]
-
-        # A_dmin, b_dmin = MinDistance.build_constraint(
-        #     xi=xi, xj=xj, vi=vi, vj=vj,
-        #     ai=self._max_u, aj=self._max_u,
-        #     d=min_distance, gamma=gamma_min,
-        #     relax=relax_d_min)
-
-        # A = np.vstack((A, A_dmin))
-        # b = np.vstack((b, b_dmin))
 
         ri = min_distance
         rj = np.ones(robot_states.shape[0]) * 0
@@ -437,7 +364,8 @@ class DecentralisedCBF(Behavior):
                                             time_horizon=2.0)
         if len(planes) > 0:
             A_orca, b_ocra = ORCA.build_constraint(planes, vi,
-                                                   1.0)
+                                                   gamma_min,
+                                                   relax_d_min)
             A = np.vstack((A, A_orca,))
             b = np.vstack((b, b_ocra,))
 

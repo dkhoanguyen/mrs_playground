@@ -1,10 +1,10 @@
 animal:
-  num: 15
+  num: 30
   x_interval: [600, 700]
   y_interval: [400, 600]
 
 robot:
-  num: 3
+  num: 5
   id: 10
   x_interval: [300, 310]
   y_interval: [300, 700]

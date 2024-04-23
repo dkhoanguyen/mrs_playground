@@ -193,7 +193,8 @@ class ORCA():
     @staticmethod
     def build_constraint(orca_planes: List[Plane],
                          vi: np.ndarray,
-                         gamma: float = 1.0):
+                         gamma: float = 1.0,
+                         relax: bool = False):
         A = np.empty((0, 4))
         b = np.empty((0, 1))
         for plane in orca_planes:
@@ -206,7 +207,7 @@ class ORCA():
 
             # Optimal decay to ensure feasibility
             row_A = np.append(-w.transpose(), -h)
-            row_A = np.append(row_A, 0.0)
+            row_A = np.append(row_A, int(relax))
             A = np.vstack((A, row_A))
 
             b = np.vstack([b, 0])
