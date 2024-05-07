@@ -168,12 +168,12 @@ class DecentralisedCBF(Behavior):
             u_nom_flipped = np.array([[np.cos(theta), -np.sin(theta)],
                                       [np.sin(theta), np.cos(theta)]]).dot(u_nom.reshape(2, 1))
             # if self._is_leaf:
-            u_nom = u_nom + u_nom_flipped.reshape((2,))
+            u_nom = u_nom_flipped.reshape((2,))
 
             # Move forward target if angle is aligned
-            if abs(angle_to_target) < 0.25:
-                u_target = unit_vector(self._target - state[:2]) * np.linalg.norm(u_nom_flipped)
-                u_nom = u_nom + 10 * u_target
+            if abs(angle_to_target) < 0.15:
+                u_target = unit_vector(self._target - state[:2]) * np.linalg.norm(u_nom)
+                u_nom = u_nom + u_target
 
 
         # Scale down u
@@ -188,9 +188,8 @@ class DecentralisedCBF(Behavior):
                                                     gamma_max=1.0,
                                                     relax_d_min=False,
                                                     relax_d_max=True)
-
         A = np.vstack((A, A_r_a))
-        b = np.vstack((b, b_r_a))
+        b = np.vstack((b, b_r_a))  
 
         A_r_r, b_r_r = self._robot_robot_formation(state=state,
                                                    v_nom=u_nom,
@@ -245,7 +244,7 @@ class DecentralisedCBF(Behavior):
             v = gain * p * utils.unit_vector(xij)
             # P Controller to obtain control u
             v_sum += v
-        u = 10 * (v_sum - vi)
+        u = self._max_u * (v_sum - vi)
         return u
 
     def _repulsion(self, xi: np.ndarray, xj: np.ndarray,
