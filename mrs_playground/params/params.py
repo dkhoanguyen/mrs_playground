@@ -22,8 +22,8 @@ COL = SCREEN_WIDTH // 12
 ROW = SCREEN_HEIGHT // 9
 FPS = 30
 MENU_BACKGROUND = pygame.Color('slate gray')
-SIMULATION_BACKGROUND = pygame.Color('dark slate gray')
-# SIMULATION_BACKGROUND = pygame.Color('white')
+# SIMULATION_BACKGROUND = pygame.Color('dark slate gray')
+SIMULATION_BACKGROUND = pygame.Color('white')
 FONTS = {
     'hallo-sans-light': assets.freetype('hallo-sans-light.otf'),
     'hallo-sans-bold': assets.freetype('hallo-sans-bold.otf'),

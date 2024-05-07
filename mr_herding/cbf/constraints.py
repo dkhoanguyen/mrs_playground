@@ -279,12 +279,11 @@ class MaxDistance:
 
         return A, b
 
-
-class Stabiliser:
+class FormClosure():
     @staticmethod
-    def build_constraint(prev_u: np.ndarray):
+    def build_constrain(xi: np.ndarray, xj: np.ndarray,
+                         vi: np.ndarray, vj: np.ndarray,):
         pass
-
 
 def unit_vector(v: np.ndarray):
     return v / np.linalg.norm(v)

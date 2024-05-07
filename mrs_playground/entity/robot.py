@@ -19,7 +19,7 @@ class Robot(Entity):
         super().__init__(
             pose=pose,
             velocity=velocity,
-            image_path='drone.png')
+            image_path='empty.png')
 
         self._id = id
         self._max_v = max_v
@@ -106,6 +106,8 @@ class Robot(Entity):
             screen.blit(self._text, tuple(self._pose - np.array([20, 20])))
 
         # Update graphics accordingly
-        self._move(self._velocity)
-        self._text = self._font.render(str(self._id), 1, pygame.Color("white"))
+        # self._move(self._velocity)
+        self._text = self._font.render(str(self._id), 1, pygame.Color("black"))
+        pygame.draw.circle(screen, pygame.Color(
+            "green3"), tuple(self._pose), 10)
         return super().display(screen, debug)

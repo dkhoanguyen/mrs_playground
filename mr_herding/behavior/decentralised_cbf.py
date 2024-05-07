@@ -149,35 +149,6 @@ class DecentralisedCBF(Behavior):
         if np.all(reach_consensus == 1):
             enforce_formation = True
 
-        # Construct adjacency matrix
-        for comm in all_comms:
-            adj_id = comm["id"]
-            adj_state = comm["state"]
-
-            if np.linalg.norm(pose - adj_state[:2]) < self._sensing_range \
-                    and id != adj_id:
-                self._adj_vector[adj_id] = 1.0
-            else:
-                self._adj_vector[adj_id] = 0.0
-
-        # If leaf node
-        if np.sum(self._adj_vector) == 1:
-            self._is_leaf = True
-        else:
-            self._is_leaf = False
-
-        # Reconstruct adj_matrix from all vector
-        for comm in all_comms:
-            adj_vector = comm["adj_vector"]
-            comm_id = comm["id"]
-            self._adj_matrix[comm_id, :] = adj_vector
-
-        self._adj_graph = nx.from_numpy_array(self._adj_matrix)
-        centrality = nx.betweenness_centrality(self._adj_graph)
-        leader_node_id = max(centrality, key=centrality.get)
-        if leader_node_id == id:
-            self._is_leader = True
-
         if enforce_formation:
             # Estimate overall animal heading
             in_vision_animal_pos = np.average(
@@ -189,14 +160,21 @@ class DecentralisedCBF(Behavior):
             angle_to_target = angle_between_with_direction(
                 animal_in_vision_to_target, in_vision_animal_heading)
 
-            theta = 2.5 * angle_to_target
+            theta = angle_to_target
             if np.abs(theta) > np.pi/2:
                 theta = np.sign(theta) * np.pi/2
 
+            # If heading is incorrect, accelerate to adjust heading
             u_nom_flipped = np.array([[np.cos(theta), -np.sin(theta)],
                                       [np.sin(theta), np.cos(theta)]]).dot(u_nom.reshape(2, 1))
             # if self._is_leaf:
             u_nom = u_nom + u_nom_flipped.reshape((2,))
+
+            # Move forward target if angle is aligned
+            if abs(angle_to_target) < 0.25:
+                u_target = unit_vector(self._target - state[:2]) * np.linalg.norm(u_nom_flipped)
+                u_nom = u_nom + 10 * u_target
+
 
         # Scale down u
         if np.linalg.norm(u_nom) > self._max_u:
@@ -205,7 +183,7 @@ class DecentralisedCBF(Behavior):
         A_r_a, b_r_a = self._robot_animal_formation(state=state,
                                                     animal_states=animal_states,
                                                     min_distance=self._min_animal_d,
-                                                    gamma_min=1.0,
+                                                    gamma_min=2.0,
                                                     max_distance=self._max_animal_d,
                                                     gamma_max=1.0,
                                                     relax_d_min=False,
@@ -234,7 +212,7 @@ class DecentralisedCBF(Behavior):
                                  [-self._max_u, -self._max_u, -np.inf, -np.inf]),
                              ub=np.array(
                                  [self._max_u, self._max_u, np.inf, np.inf]),
-                             p_omega=10000000.0,
+                             p_omega=100000000.0,
                              omega_0=1.0)
         self._u = u_nom
         self._prev_x = x
@@ -242,15 +220,15 @@ class DecentralisedCBF(Behavior):
 
     def display(self, screen: pygame.Surface):
         pygame.draw.line(
-            screen, pygame.Color("yellow"),
+            screen, pygame.Color("blue"),
             tuple(self._pose), tuple(self._pose + 5 * (self._u)))
 
         pygame.draw.line(
             screen, pygame.Color("white"),
             tuple(self._in_vision_animal_pos), tuple(self._in_vision_animal_pos + 10 * (self._animal_heading)))
 
-        pygame.draw.circle(screen, pygame.Color("white"),
-                           tuple(self._target), 30, 1)
+        # pygame.draw.circle(screen, pygame.Color("white"),
+        #                    tuple(self._target), 30, 1)
         return super().display(screen)
 
     def _edge_following(self, xi: np.ndarray, xj: np.ndarray,

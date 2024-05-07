@@ -187,17 +187,15 @@ class MathematicalFlock(Behavior):
 
         self._densities = self._herd_density(animal_states=animal_states,
                                              robot_states=robot_states)
-        # print(self._densities)
 
-        qdot = local_clustering + \
-            flocking + self._flocking_condition * global_clustering
+        qdot = flocking + local_clustering
 
         avoidance_v = np.zeros_like(animal_states[:, 2:4])
         for idx in range(animal_states.shape[0]):
             qi = animal_states[idx, :2]
             u_pred = self._predator_avoidance_term(
                 si=qi, r=self._danger_range, k=4)
-            avoidance_v[idx, :] += u_pred + 5 * self._densities[idx,:2]
+            avoidance_v[idx, :] += u_pred + self._densities[idx,:2]
 
         # x_t = animal_states[:,:4]
         # x_t_1 = self._dynamics.step(x_t=x_t,u_t=qdot)
@@ -208,7 +206,6 @@ class MathematicalFlock(Behavior):
                 qdot[idx, :] * self._dt
             if np.linalg.norm(velocity) > self._max_v:
                 velocity = self._max_v * utils.unit_vector(velocity)
-
             # Next expected position
             next_pose = animal_states[idx, 0:2] + velocity * self._dt
 
@@ -216,10 +213,11 @@ class MathematicalFlock(Behavior):
             #                                 target_state=next_pose,
             #                                 lookahead=10.0)
             # x_t_1 = self._state_update(x_t=animal_states[idx, :], u_t=u_t)
-            # heading = np.array([1.0*np.cos(x_t_1[2]), 1.0*np.sin(x_t_1[2])])
+            # heading = np.array([u_t[0]*np.cos(x_t_1[2]), u_t[0]*np.sin(x_t_1[2])])
 
             # animal._velocity = heading
             # animal._pose = x_t_1[:2]
+
             animal._velocity = velocity
             animal._pose = next_pose
 
@@ -652,9 +650,11 @@ class MathematicalFlock(Behavior):
         # Calculate heading error
         heading_error = desired_heading - \
             utils.normalize_angle(current_heading)
+        if np.abs(heading_error) > 1.57:
+            heading_error = np.sign(heading_error) * 1.57
 
         v = min(self._max_v, 5.0 * d_err)
-        w = min(1.57, 5.0 * heading_error)
+        w = heading_error
 
         return np.array([v, w])
 
