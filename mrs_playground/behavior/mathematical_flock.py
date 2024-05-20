@@ -195,14 +195,14 @@ class MathematicalFlock(Behavior):
             qi = animal_states[idx, :2]
             u_pred = self._predator_avoidance_term(
                 si=qi, r=self._danger_range, k=4)
-            avoidance_v[idx, :] += u_pred + self._densities[idx,:2]
+            avoidance_v[idx, :] += 1 * u_pred + 1 * self._densities[idx,:2]
 
         # x_t = animal_states[:,:4]
         # x_t_1 = self._dynamics.step(x_t=x_t,u_t=qdot)
         animal: Animal
         for idx, animal in enumerate(self._animals):
             # Velocity of animal ith
-            velocity = animal_states[idx, 2:4] + avoidance_v[idx, :] + \
+            velocity = animal_states[idx, 2:4] +  avoidance_v[idx, :] + \
                 qdot[idx, :] * self._dt
             if np.linalg.norm(velocity) > self._max_v:
                 velocity = self._max_v * utils.unit_vector(velocity)

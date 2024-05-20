@@ -132,7 +132,7 @@ class DecentralisedCBF(Behavior):
         # Edge following
         # Need to rework this behavior but this is for future work
         u_edge_following = self._edge_following(
-            xi=xi, xj=xj, vi=velocity, d=self._min_animal_d, gain=10.0)
+            xi=xi, xj=xj, vi=velocity, d=self._min_animal_d, gain=5.0)
         u_nom += u_edge_following
 
         # CBF Constraints
@@ -171,7 +171,7 @@ class DecentralisedCBF(Behavior):
             u_nom = u_nom_flipped.reshape((2,))
 
             # Move forward target if angle is aligned
-            if abs(angle_to_target) < 0.15:
+            if abs(angle_to_target) < 0.2:
                 u_target = unit_vector(self._target - state[:2]) * np.linalg.norm(u_nom)
                 u_nom = u_nom + u_target
 
@@ -183,7 +183,7 @@ class DecentralisedCBF(Behavior):
         A_r_a, b_r_a = self._robot_animal_formation(state=state,
                                                     animal_states=animal_states,
                                                     min_distance=self._min_animal_d,
-                                                    gamma_min=2.0,
+                                                    gamma_min=1.0,
                                                     max_distance=self._max_animal_d,
                                                     gamma_max=1.0,
                                                     relax_d_min=False,
@@ -192,12 +192,13 @@ class DecentralisedCBF(Behavior):
         b = np.vstack((b, b_r_a))  
 
         A_r_r, b_r_r = self._robot_robot_formation(state=state,
-                                                   v_nom=u_nom,
+                                                   v_nom=utils.unit_vector(
+                                                                       u_nom)*self._max_u,
                                                    robot_states=other_states,
                                                    min_distance=self._min_robot_d,
                                                    gamma_min=1.0,
                                                    max_distance=self._max_robot_d,
-                                                   gamma_max=1.0,
+                                                   gamma_max=2.0,
                                                    relax_d_min=False,
                                                    relax_d_max=not enforce_formation)
         A = np.vstack((A, A_r_r))
@@ -226,8 +227,12 @@ class DecentralisedCBF(Behavior):
             screen, pygame.Color("white"),
             tuple(self._in_vision_animal_pos), tuple(self._in_vision_animal_pos + 10 * (self._animal_heading)))
 
-        # pygame.draw.circle(screen, pygame.Color("white"),
-        #                    tuple(self._target), 30, 1)
+        pygame.draw.circle(screen, pygame.Color("red"),
+                           tuple(self._pose), self._max_robot_d, 1)
+        pygame.draw.circle(screen, pygame.Color("black"),
+                           tuple(self._target), 50, 1)
+        pygame.draw.circle(screen, pygame.Color("dark green"),
+                           tuple(self._pose), self._min_robot_d, 1)
         return super().display(screen)
 
     def _edge_following(self, xi: np.ndarray, xj: np.ndarray,
@@ -342,7 +347,7 @@ class DecentralisedCBF(Behavior):
         if len(planes) > 0:
             A_orca, b_ocra = ORCA.build_constraint(planes, vi,
                                                    gamma_min,
-                                                   relax_d_min)
+                                                   1.2)
             A = np.vstack((A, A_orca,))
             b = np.vstack((b, b_ocra,))
 
@@ -351,7 +356,7 @@ class DecentralisedCBF(Behavior):
             ai=self._max_u, aj=self._max_u,
             d=max_distance, gamma=gamma_max,
             relax=relax_d_max)
-
+        
         A = np.vstack((A, A_dmax))
         b = np.vstack((b, b_dmax))
 
