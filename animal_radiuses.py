@@ -93,9 +93,9 @@ y_end = center[1] + (R_o-head_length) * np.sin(angle)
 # Draw the arrow
 ax.arrow(center[0], center[1], x_end - center[0], y_end - center[1],
          head_width=1, head_length=head_length, fc='k', ec='k')
-annotation = r'$\mathrm{R_{separation}}$'
+annotation = r'$\mathbf{R_{separation}}$'
 ax.annotate(annotation, (x_end, y_end), textcoords="offset points",
-            xytext=(-31, 7.5), ha='center')
+            xytext=(-40, 10), ha='center', fontsize=14)
 
 angle = np.deg2rad(75)
 x_end = center[0] + (R_avoid-head_length) * np.cos(angle)
@@ -105,17 +105,17 @@ y_end = center[1] + (R_avoid-head_length) * np.sin(angle)
 ax.arrow(center[0], center[1], x_end - center[0], y_end - center[1],
          head_width=1, head_length=head_length, fc='k', ec='k')
 
-annotation = r'$\mathrm{R_{influence}}$'
+annotation = r'$\mathbf{R_{influence}}$'
 ax.annotate(annotation, (x_end, y_end), textcoords="offset points",
-            xytext=(10, 15), ha='center')
+            xytext=(10, 15), ha='center', fontsize=14)
 
 angle = np.deg2rad(35)
 x_end = center[0] + (R_s-head_length) * np.cos(angle)
 y_end = center[1] + (R_s-head_length) * np.sin(angle)
 
-annotation = r'$\mathrm{R_{sensing}}$'
+annotation = r'$\mathbf{R_{sensing}}$'
 ax.annotate(annotation, (x_end, y_end), textcoords="offset points",
-            xytext=(25, 10), ha='center')
+            xytext=(30, 10), ha='center', fontsize=14)
 
 # Draw the arrow
 ax.arrow(center[0], center[1], x_end - center[0], y_end - center[1],

@@ -42,6 +42,7 @@ delta_vx_angle = np.arctan2(delta_vx[1], delta_vx[0])
 
 # Create a figure and axis
 fig, ax = plt.subplots()
+fig.set_size_inches(4, 3)
 
 # Plot the agents
 ax.plot(*agent_i_pos, 'ko', markersize=2, label='Agent i')
@@ -82,7 +83,7 @@ ax.annotate(r'$\Delta \mathbf{p}_{ij}$', xy=(agent_i_pos[0] + delta_pij[0], agen
             xytext=(-10, 15), textcoords='offset points', ha='center', fontsize=14)
 
 ax.annotate(r'$\Delta \mathbf{v}_{ij}$', xy=(agent_i_pos[0] + delta_vij[0], agent_i_pos[1] + delta_vij[1]),
-            xytext=(20, 20), textcoords='offset points', ha='center', fontsize=14)
+            xytext=(20, 10), textcoords='offset points', ha='center', fontsize=14)
 ax.annotate(r'$\Delta \mathbf{v}$', xy=(agent_j_pos[0] + delta_v[0] / 2, agent_j_pos[1] + delta_v[1] / 2),
             xytext=(10, -20), textcoords='offset points', ha='center', fontsize=14)
 
@@ -110,7 +111,4 @@ ax.set_aspect('equal')
 ax.axis('off')
 
 # # Save the plot to a PDF file
-# plt.savefig('min_max_cbf.pdf', format='pdf')
-
-# Show the plot
-plt.show()
+plt.savefig('min_max_cbf.pdf', format='pdf')
