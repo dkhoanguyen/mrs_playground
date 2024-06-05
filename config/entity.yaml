@@ -1,5 +1,5 @@
 animal:
-  num: 10
+  num: 15
   x_interval: [600, 700]
   y_interval: [400, 500]
 

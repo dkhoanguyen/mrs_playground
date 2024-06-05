@@ -2,12 +2,12 @@ classdef Flocking
     properties
         
         %% Constant
-        C1_ALPHA=3;
-        C2_ALPHA=2*sqrt(C1_ALPHA);
-        C1_BETA=20;
-        C2_BETA=2*sqrt(C1_BETA);
-        C1_GAMMA=5;
-        C2_GAMMA=0.2*sqrt(C1_GAMMA);
+        C1_ALPHA=0.3;
+        C2_ALPHA=0.2*sqrt(C1_ALPHA);
+        C1_BETA=2;
+        C2_BETA=0.2*sqrt(C1_BETA);
+        C1_GAMMA=0.5;
+        C2_GAMMA=0.02*sqrt(C1_GAMMA);
         
         %% Parameters
         dt;
@@ -23,25 +23,25 @@ classdef Flocking
             obj.sensingRange = sensingRange;
             obj.dangerRange = dangerRange;
             obj.maxV = maxV;
-            obk.distance = distance;
+            obj.distance = distance;
         end
         
         function newStates = step(obj,animalStates, robotStates)
             uLocalClustering = obj.localClustering(animalStates,robotStates,k=1);
             uflocking = obj.flocking(animalStates,robotStates);
-            densities = obj.herdDensity(animalStates,robotStates);
+            % densities = obj.herdDensity(animalStates,robotStates);
             
             qDot = uflocking + uLocalClustering;
             
             avoidanceV = zeros(size(animalStates, 1), 2);
             
-            % Calculate avoidance velocities
-            for idx = 1:size(animalStates, 1)
-                qi = animalStates(idx, 1:2);
-                u_pred = obj.predatorAvoidanceTerm(qi, obj.dangerRange, 4,robotStates);
-                avoidanceV(idx, :) = avoidanceV(idx, :) + u_pred + densities(idx, 1:2);
-            end
-            
+            % % Calculate avoidance velocities
+            % for idx = 1:size(animalStates, 1)
+            %     qi = animalStates(idx, 1:2);
+            %     u_pred = obj.predatorAvoidanceTerm(qi, obj.dangerRange, 4,robotStates);
+            %     avoidanceV(idx, :) = avoidanceV(idx, :) + u_pred + densities(idx, 1:2);
+            % end
+            % 
             % Update herd states with qdot
             animalStates(:, 3:4) = qDot * obj.dt + avoidanceV;
             
@@ -147,8 +147,8 @@ classdef Flocking
                     end
                     
                     uGamma = gain * obj.groupObjectiveTerm(...
-                        MathematicalFlock.C1_gamma, ...
-                        MathematicalFlock.C2_gamma, ...
+                        obj.C1_GAMMA, ...
+                        obj.C2_GAMMA, ...
                         target, qi, avoidVel, pi ...
                         );
                     

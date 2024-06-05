@@ -132,7 +132,7 @@ class DecentralisedCBF(Behavior):
         # Edge following
         # Need to rework this behavior but this is for future work
         u_edge_following = self._edge_following(
-            xi=xi, xj=xj, vi=velocity, d=self._min_animal_d, gain=5.0)
+            xi=xi, xj=xj, vi=velocity, d=self._min_animal_d, gain=10.0)
         u_nom += u_edge_following
 
         # CBF Constraints
@@ -198,7 +198,7 @@ class DecentralisedCBF(Behavior):
                                                    min_distance=self._min_robot_d,
                                                    gamma_min=1.0,
                                                    max_distance=self._max_robot_d,
-                                                   gamma_max=2.0,
+                                                   gamma_max=0.1,
                                                    relax_d_min=False,
                                                    relax_d_max=not enforce_formation)
         A = np.vstack((A, A_r_r))
@@ -226,13 +226,16 @@ class DecentralisedCBF(Behavior):
         pygame.draw.line(
             screen, pygame.Color("white"),
             tuple(self._in_vision_animal_pos), tuple(self._in_vision_animal_pos + 10 * (self._animal_heading)))
-
-        pygame.draw.circle(screen, pygame.Color("red"),
-                           tuple(self._pose), self._max_robot_d, 1)
+        
         pygame.draw.circle(screen, pygame.Color("black"),
                            tuple(self._target), 50, 1)
-        pygame.draw.circle(screen, pygame.Color("dark green"),
-                           tuple(self._pose), self._min_robot_d, 1)
+
+        # pygame.draw.circle(screen, pygame.Color("red"),
+        #                    tuple(self._pose), self._max_robot_d, 1)
+        # pygame.draw.circle(screen, pygame.Color("black"),
+        #                    tuple(self._target), 50, 1)
+        # pygame.draw.circle(screen, pygame.Color("dark green"),
+        #                    tuple(self._pose), self._min_robot_d, 1)
         return super().display(screen)
 
     def _edge_following(self, xi: np.ndarray, xj: np.ndarray,

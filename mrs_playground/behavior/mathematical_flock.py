@@ -88,7 +88,8 @@ class MathematicalFlock(Behavior):
                  danger_range: float,
                  initial_consensus: np.ndarray,
                  max_v: np.ndarray,
-                 distance: float):
+                 distance: float,
+                 target: np.ndarray):
         super().__init__()
         self._animals = []
         self._robots = []
@@ -129,6 +130,9 @@ class MathematicalFlock(Behavior):
         self._total_clusters = 0
         self._clusters = []
         self._plot_cluster = False
+
+        self._is_at_target = False
+        self._target = target
 
     # Animal
     def add_animal(self, animal: Animal):
@@ -171,6 +175,11 @@ class MathematicalFlock(Behavior):
             animal_states = np.vstack(
                 (animal_states, animal.state[:4]))
 
+        herd_mean = np.sum(
+            animal_states[:, :2], axis=0) / animal_states.shape[0]
+        if np.linalg.norm(herd_mean - self._target) < 30:
+            self._is_at_target = True
+
         robot: Robot
         robot_states = np.array([]).reshape((0, 4))
         for robot in self._robots:
@@ -195,14 +204,14 @@ class MathematicalFlock(Behavior):
             qi = animal_states[idx, :2]
             u_pred = self._predator_avoidance_term(
                 si=qi, r=self._danger_range, k=4)
-            avoidance_v[idx, :] += 1 * u_pred + 1 * self._densities[idx,:2]
+            avoidance_v[idx, :] += 1 * u_pred + 1 * self._densities[idx, :2]
 
         # x_t = animal_states[:,:4]
         # x_t_1 = self._dynamics.step(x_t=x_t,u_t=qdot)
         animal: Animal
         for idx, animal in enumerate(self._animals):
             # Velocity of animal ith
-            velocity = animal_states[idx, 2:4] +  avoidance_v[idx, :] + \
+            velocity = animal_states[idx, 2:4] + avoidance_v[idx, :] + \
                 qdot[idx, :] * self._dt
             if np.linalg.norm(velocity) > self._max_v:
                 velocity = self._max_v * utils.unit_vector(velocity)
