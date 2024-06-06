@@ -90,12 +90,21 @@ angle = np.deg2rad(145)
 x_end = center[0] + (R_o-head_length) * np.cos(angle)
 y_end = center[1] + (R_o-head_length) * np.sin(angle)
 
+annotation = r'Robot'
+ax.annotate(annotation, (-24, 13), textcoords="offset points",
+            xytext=(16, 12), ha='center', fontsize=14)
+
+annotation = r'Animal'
+ax.annotate(annotation, center, textcoords="offset points",
+            xytext=(0, -25), ha='center', fontsize=14)
+
 # Draw the arrow
 ax.arrow(center[0], center[1], x_end - center[0], y_end - center[1],
          head_width=1, head_length=head_length, fc='k', ec='k')
 annotation = r'$\mathbf{R_{separation}}$'
 ax.annotate(annotation, (x_end, y_end), textcoords="offset points",
             xytext=(-40, 10), ha='center', fontsize=14)
+
 
 angle = np.deg2rad(75)
 x_end = center[0] + (R_avoid-head_length) * np.cos(angle)

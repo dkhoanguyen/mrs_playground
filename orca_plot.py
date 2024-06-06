@@ -53,9 +53,9 @@ plt.text(pB[0], pB[1] + 1.2 * rB, r'Agent j', fontsize=16,
 
 # Adding velocity arrows
 plt.arrow(pA[0], pA[1], vA[0], vA[1], head_width=0.05,
-          head_length=0.1, fc='r', ec='r', lw=0.5)
+          head_length=0.1, fc='r', ec='r', lw=0.75)
 plt.arrow(pB[0], pB[1], vB[0], vB[1], head_width=0.05,
-          head_length=0.1, fc='r', ec='r', lw=0.5)
+          head_length=0.1, fc='r', ec='r', lw=0.75)
 
 # Setting axis limits
 plt.xlim(-2, 2)
@@ -66,13 +66,13 @@ plt.text(0.08, 1.7, r'$\mathbf{y}$', fontsize=14)
 
 # Adding arrows for axes
 plt.arrow(0, 0, 1.2, 0, head_width=0.05,
-          head_length=0.1, fc='k', ec='k', lw=0.25)
+          head_length=0.1, fc='k', ec='k', lw=0.5)
 plt.arrow(0, 0, 0, 1.75, head_width=0.05,
-          head_length=0.1, fc='k', ec='k', lw=0.25)
+          head_length=0.1, fc='k', ec='k', lw=0.5)
 plt.arrow(0, 0, -1.2, 0, head_width=0.05,
-          head_length=0.1, fc='k', ec='k', lw=0.25)
+          head_length=0.1, fc='k', ec='k', lw=0.5)
 plt.arrow(0, 0, 0, -1.75, head_width=0.05,
-          head_length=0.1, fc='k', ec='k', lw=0.25)
+          head_length=0.1, fc='k', ec='k', lw=0.5)
 
 plt.text(vB[0]-0.2, vB[1]+0.15, r'$v_i$', fontsize=14)
 
