@@ -10,12 +10,18 @@ def unit_vector(v):
 plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Computer Modern'
-
 # Parameters for the plot
 pA = np.array([0, 0])
-pB = np.array([-3, 4.5])
-rA = 1.
-rB = 1.
+pB = np.array([-2., 4.5])
+v_A = np.array([1.2, 1.5])
+truncated_vA = unit_vector(v_A) * (np.linalg.norm(v_A) - 0.2)
+v_B = np.array([2.0, -0.7])
+truncated_vB = unit_vector(v_B) * (np.linalg.norm(v_B) - 0.2)
+vA_vB = v_A - v_B
+truncated_vA_vB = unit_vector(vA_vB) * (np.linalg.norm(vA_vB) - 0.2)
+
+rA = 0.8
+rB = 0.8
 tau = 2
 side_length = 7
 
@@ -23,7 +29,6 @@ side_length = 7
 pB_pA = pB - pA
 pB_pA_tau = pB_pA / tau
 r_sum = rA + rB
-
 # Plotting the vectors and shaded region
 fig, ax = plt.subplots()
 
@@ -87,8 +92,8 @@ radius_angle = (np.pi/2 - cone_width_angle) + cone_angle
 radius = np.array([np.cos(radius_angle + 0.3) * (r_sum - 0.2),
                   np.sin(radius_angle + 0.3) * (r_sum - 0.2)])
 
-radius_tau = np.array([np.cos(radius_angle + 1.6) * (r_sum/tau - 0.2),
-                       np.sin(radius_angle + 1.6) * (r_sum/tau - 0.2)])
+radius_tau = np.array([np.cos(radius_angle + 1.06) * (r_sum/tau - 0.2),
+                       np.sin(radius_angle + 1.06) * (r_sum/tau - 0.2)])
 
 plt.arrow(pB_pA[0], pB_pA[1], radius[0], radius[1], head_width=0.1,
           head_length=0.2, fc='k', ec='k', lw=0.75)
@@ -99,7 +104,7 @@ plt.arrow(pB_pA_tau[0], pB_pA_tau[1], radius_tau[0], radius_tau[1], head_width=0
 ax.annotate(r'$\mathbf{r}_{ij}$', xy=(pB_pA[0] + radius[0], pB_pA[1] + radius[1]),
             xytext=(10, 15), textcoords='offset points', ha='center', fontsize=14)
 ax.annotate(r'$\mathbf{r}_{ij}/\tau$', xy=(pB_pA_tau[0] + radius_tau[0], pB_pA_tau[1] +
-            radius_tau[1]), xytext=(-20, 7), textcoords='offset points', ha='center', fontsize=14)
+            radius_tau[1]), xytext=(-20, -20), textcoords='offset points', ha='center', fontsize=14)
 
 ax.set_aspect('equal', 'box')
 ax.set_xlim(-6, 1)
@@ -127,10 +132,10 @@ plt.text(0.1, 2.85, r'$\mathbf{v_y}$', fontsize=14)
 
 # Annotations
 ax.annotate(r'$\Delta \mathbf{p}_{ij}$', xy=(pB_pA[0], pB_pA[1]),
-            xytext=(-10, 10), textcoords='offset points', ha='center', fontsize=14)
+            xytext=(10, 10), textcoords='offset points', ha='center', fontsize=14)
 
 ax.annotate(r'$\Delta \mathbf{p}_{ij} / \tau$', xy=(pB_pA_tau[0], pB_pA_tau[1]),
-            xytext=(5, 10), textcoords='offset points', ha='center', fontsize=14)
+            xytext=(0, 10), textcoords='offset points', ha='center', fontsize=14)
 
 ax.annotate(r'$\mathbf{VO}_{i|j}^{\tau}$', xy=(-1.75, 2.25),
             xytext=(-15, 40), textcoords='offset points', ha='center', fontsize=14)

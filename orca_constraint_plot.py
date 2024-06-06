@@ -4,11 +4,17 @@ import numpy as np
 from mr_herding.cbf.constraints import *
 
 
+# Enable LaTeX for text rendering
+plt.rcParams['text.usetex'] = True
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = 'Computer Modern'
+
+
 def unit_vector(v):
     return v / np.linalg.norm(v)
 
 
-def plot_line_from_normal(normal, point, ax, x_range=(-10, 10)):
+def plot_line_from_normal(normal, point, ax, v, w, x_range=(-10, 10)):
     point = unit_vector(point) * (np.linalg.norm(point) + 0.4)
     # Normal vector
     a, b = normal
@@ -19,18 +25,43 @@ def plot_line_from_normal(normal, point, ax, x_range=(-10, 10)):
     # Direction vector (perpendicular to the normal vector)
     direction = np.array([-b, a])
 
+    angle = np.degrees(np.arctan2(direction[1], direction[0]))
+
     # Generate x values
     x_values = np.linspace(x_range[0], x_range[1], 400)
 
     # Calculate corresponding y values using the point-slope form
     y_values = y0 + (direction[1] / direction[0]) * (x_values - x0)
 
-    # Plot the line
-    ax.plot(x_values, y_values,
-            label=f'Line through ({x0}, {y0}) with normal {normal}')
-    # ax.scatter(x0, y0, color='red')  # Mark the point
-    # ax.quiver(x0, y0, normal[0], normal[1], angles='xy',
-    #           scale_units='xy', scale=1, color='blue', label='Normal vector')
+    # # Plot the line
+    # ax.plot(x_values, y_values,
+    #         label=f'Line through ({x0}, {y0}) with normal {normal}')
+    # Add double-ended arrow
+    # mid_idx = len(x_values) // 2
+    ax.annotate('', xy=(x_values[0], y_values[0]), xytext=(x_values[-1], y_values[-1]),
+                arrowprops=dict(arrowstyle='<->', color='black'))
+
+    start_point = np.array([x_values[0], y_values[0]])
+    end_point = np.array([x_values[-1], y_values[-1]])
+
+    shifted_point = point - v
+
+    end_point_shade = end_point + w
+    start_point_shade = start_point + w
+    print(end_point)
+
+    vertices = np.array([[x_values[0], y_values[0]],
+                         [x_values[-1], y_values[-1]],
+                         [end_point_shade[0], end_point_shade[1]],
+                         [start_point_shade[0], start_point_shade[1]]])
+
+    ax.fill(*zip(*vertices),
+            edgecolor='none', facecolor='mistyrose')
+
+    # Add annotation along the line
+    annotation_text = r'$\mathit{ORCA}_{i|j}^{\tau}$'
+    plt.text(x0+1.05, y0+2, annotation_text, rotation=angle, ha='center', va='center',
+             fontsize=16, color='black')
 
 
 # Enable LaTeX for text rendering
@@ -40,15 +71,16 @@ plt.rcParams['font.serif'] = 'Computer Modern'
 
 # Parameters for the plot
 pA = np.array([0, 0])
-pB = np.array([-3, 4.5])
-v_A = np.array([1.78, 1.4])
+pB = np.array([-2., 4.5])
+v_A = np.array([1.2, 1.5])
 truncated_vA = unit_vector(v_A) * (np.linalg.norm(v_A) - 0.2)
-v_B = np.array([2.95, -0.75])
+v_B = np.array([2.0, -0.7])
 truncated_vB = unit_vector(v_B) * (np.linalg.norm(v_B) - 0.2)
 vA_vB = v_A - v_B
-print(vA_vB)
-rA = 1.
-rB = 1.
+truncated_vA_vB = unit_vector(vA_vB) * (np.linalg.norm(vA_vB) - 0.2)
+
+rA = 0.8
+rB = 0.8
 tau = 2
 side_length = 7
 
@@ -90,7 +122,7 @@ pB_pA_tau_offset = unit_vector(
 
 # Circles representing positions
 circleA = plt.Circle(pB_pA_tau, r_sum / tau, edgecolor='black',
-                     facecolor='lightyellow', linestyle='-', lw=1)
+                     facecolor='lemonchiffon', linestyle='-', lw=1)
 
 
 ax.add_patch(circleA)
@@ -103,10 +135,10 @@ vertices = np.array([
     [right[0], right[1]]])
 # Plot the triangle
 ax.fill(*zip(*vertices),
-        edgecolor='none', facecolor='lightyellow')
+        edgecolor='none', facecolor='lemonchiffon')
 
 # circleC = plt.Circle(pB_pA, r_sum, edgecolor='black',
-#                      facecolor='lightyellow', linestyle='--', lw=0.5)
+#                      facecolor='lemonchiffon', linestyle='--', lw=0.5)
 # ax.add_patch(circleC)
 
 # plt.plot([0, left[0]], [0, left[1]], 'k', lw=0.75, linestyle='--')
@@ -119,12 +151,10 @@ plt.arrow(lower_right[0], lower_right[1], right[0] - lower_right[0], right[1] - 
           head_length=0.2, fc='k', ec='k', lw=0.75)
 
 
-# plt.plot([0, v_A[0]], [0, v_A[1]], 'k', lw=0.75, linestyle='-')
+plt.plot([v_A[0], vA_vB[0]], [v_A[1], vA_vB[1]],
+         'k', lw=0.75, linestyle='dotted')
 
 plt.arrow(0, 0, truncated_vA[0], truncated_vA[1], head_width=0.1,
-          head_length=0.2, fc='k', ec='k', lw=0.75)
-
-plt.arrow(0, 0, truncated_vB[0], truncated_vB[1], head_width=0.1,
           head_length=0.2, fc='k', ec='k', lw=0.75)
 
 # For plotting
@@ -139,7 +169,8 @@ plt.arrow(vA_vB[0], vA_vB[1], truncated_vA_vB_w[0], truncated_vA_vB_w[1], head_w
 
 point = v_A + truncated_vA_vB_w/2
 truncated_point = unit_vector(point) * (np.linalg.norm(point) - 0.2)
-plot_line_from_normal(truncated_vA_vB_w, point, ax)
+plot_line_from_normal(truncated_vA_vB_w, point, ax, v_A,
+                      truncated_vA_vB_w/2, (1.05, 3))
 
 
 radius_angle = (np.pi/2 - cone_width_angle) + cone_angle
@@ -152,14 +183,9 @@ radius_tau = np.array([np.cos(radius_angle + 1.6) * (r_sum/tau - 0.2),
 plt.arrow(v_A[0], v_A[1], truncated_half_vA_vB_w[0], truncated_half_vA_vB_w[1], head_width=0.1,
           head_length=0.2, fc='k', ec='k', lw=0.75)
 
-# plt.arrow(pB_pA_tau[0], pB_pA_tau[1], radius_tau[0], radius_tau[1], head_width=0.1,
-#           head_length=0.2, fc='k', ec='k', lw=0.75)
+plt.arrow(0, 0, truncated_vA_vB[0], truncated_vA_vB[1], head_width=0.1,
+          head_length=0.2, fc='red', ec='red', lw=1.0)
 
-# # Annotations
-# ax.annotate(r'$\mathbf{r}_{ij}$', xy=(pB_pA[0] + radius[0], pB_pA[1] + radius[1]),
-#             xytext=(10, 15), textcoords='offset points', ha='center', fontsize=14)
-# ax.annotate(r'$\mathbf{r}_{ij}/\tau$', xy=(pB_pA_tau[0] + radius_tau[0], pB_pA_tau[1] +
-#             radius_tau[1]), xytext=(-20, 7), textcoords='offset points', ha='center', fontsize=14)
 
 ax.set_aspect('equal', 'box')
 ax.set_xlim(-7, 7)
@@ -167,35 +193,41 @@ ax.set_ylim(-1, 8)
 
 # Adding arrows for axes
 # Adding arrows for axes
-plt.arrow(0, 0, 5, 0, head_width=0.05,
+plt.arrow(0, 0, 3, 0, head_width=0.05,
           head_length=0.1, fc='k', ec='k', lw=0.5)
 plt.arrow(0, 0, 0, 7.0, head_width=0.05,
           head_length=0.1, fc='k', ec='k', lw=0.5)
-plt.arrow(0, 0, -5.0, 0, head_width=0.05,
+plt.arrow(0, 0, -3.0, 0, head_width=0.05,
           head_length=0.1, fc='k', ec='k', lw=0.5)
 plt.arrow(0, 0, 0, -0.5, head_width=0.05,
           head_length=0.1, fc='k', ec='k', lw=0.5)
 
 ax.plot(*vA_vB, 'ko', markersize=2, label='Agent i')
-# ax.plot(*v_A, 'ko', markersize=2, label='Agent i')
+ax.plot(*v_A, 'ko', markersize=2, label='Agent i')
 ax.plot(*[0, 0], 'ko', markersize=2, label='Agent i')
 
-plt.text(4.75, -0.35, r'$\mathbf{v_x}$', fontsize=14)
+plt.text(2.75, -0.35, r'$\mathbf{v_x}$', fontsize=14)
 plt.text(0.1, 6.85, r'$\mathbf{v_y}$', fontsize=14)
 
 # Annotations
-ax.annotate(r'$\Delta \mathbf{v}_{ij}$', xy=(vA_vB[0], vA_vB[1]),
-            xytext=(-10, 10), textcoords='offset points', ha='center', fontsize=14)
+ax.annotate(r'$\Delta \mathbf{v}_{ij}$', xy=(vA_vB[0]/2, vA_vB[1]/2),
+            xytext=(-15, -10), textcoords='offset points', ha='center', fontsize=14)
 
-# ax.annotate(r'$\Delta \mathbf{p}_{ij} / \tau$', xy=(pB_pA_tau[0], pB_pA_tau[1]),
-#             xytext=(5, 10), textcoords='offset points', ha='center', fontsize=14)
+ax.annotate(r'$\mathbf{v}_{i}$', xy=(v_A[0]/2, v_A[1]/2),
+            xytext=(0, 10), textcoords='offset points', ha='center', fontsize=14)
+
+ax.annotate(r'$\mathbf{w}_{ij}$', xy=(vA_vB[0], vA_vB[1]),
+            xytext=(3, 7), textcoords='offset points', ha='center', fontsize=14)
+
+# ax.annotate(r'$\mathbf{w}_{ij}/2$', xy=(v_A[0], v_A[1]),
+#             xytext=(-5, 10), textcoords='offset points', ha='center', fontsize=14)
 
 ax.annotate(r'$\mathbf{VO}_{i|j}^{\tau}$', xy=(-1.75, 2.25),
             xytext=(-15, 40), textcoords='offset points', ha='center', fontsize=14)
 
 
-# ax.axis('off')  # Disable the axis
+ax.axis('off')  # Disable the axis
 ax.set_aspect('equal', adjustable='box')  # Maintain aspect ratio
 
-plt.show()
-# plt.savefig('orca_constraint_plot.pdf', format='pdf')
+# plt.show()
+plt.savefig('orca_constraint_plot.pdf', format='pdf')
