@@ -4,7 +4,7 @@ math_flock:
     sensing_range: 60
     danger_range: 120
     initial_consensus: [800, 350]
-    max_v: 5
+    max_v: 7.5
     dt: 0.1
     distance: 40
     target: [350, 350]
@@ -17,13 +17,14 @@ math_flock:
 herding_apf:
   params:
     Cs: 1
-    Cr: 1
+    Cr: 3
     Cv: 1.5
     Co: 1.7
-    distance_to_target: 120.0
-    interagent_spacing: 150.0
+    distance_to_target: 110.0
+    interagent_spacing: 120.0
     obstacle_range: 40.0
     sensing_range: 1000.0
+    herding_target: [350, 350]
 
     potential_func:
       edge_follow:

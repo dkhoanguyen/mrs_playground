@@ -1,5 +1,7 @@
 #!/usr/bin/python3
-
+import os
+import pickle
+import time
 from typing import Dict, List
 
 import pygame
@@ -19,20 +21,19 @@ class SimplePlayground(object):
                  render: bool = True,
                  multi_threaded: bool = False,
                  save_to_file: bool = True,
-                 save_path: str = "data/"):
+                 save_path: str = "data/",
+                 max_t: int = 3000):
 
         self._dt = dt
         self._multi_threaded = multi_threaded
         self._render = render
         self._save_to_file = save_to_file
         self._save_path = save_path
+        self._max_t = max_t
+        self._current_t = 0
 
         # Pygame for visualisation
-        if self._render:
-            pygame.init()
-            self._screen = pygame.display.set_mode(params.SCREEN_SIZE)
-            self._rect = self._screen.get_rect()
-            self._clock = pygame.time.Clock()
+        self._init = False
         self._running = True
 
         self._entities: Dict[str, List[Entity]] = {}
@@ -46,9 +47,18 @@ class SimplePlayground(object):
 
         self._running = True
 
+        self._data_to_save = {}
+        self._data_to_save["data"] = []
+
+    def turn_on_render(self, status):
+        self._render = status
+
     @property
     def ok(self):
-        return self._running
+        return self._running and self._current_t <= self._max_t
+
+    def add_meta_data(self, meta_data):
+        self._data_to_save["meta"] = meta_data
 
     def add_entity(self, entity: Entity):
         self._entities[entity.__str__()].append(entity)
@@ -104,8 +114,18 @@ class SimplePlayground(object):
                 entity.update(events=events,
                               comms=all_comms)
 
+        all_states.update({"ts": time.time()})
+        self._data_to_save["data"].append(all_states.copy())
+        self._current_t += 1
+
     def render(self):
         if self._render:
+            if not self._init:
+                pygame.init()
+                self._screen = pygame.display.set_mode(params.SCREEN_SIZE)
+                self._rect = self._screen.get_rect()
+                self._clock = pygame.time.Clock()
+                self._init = True
             self._screen.fill(params.SIMULATION_BACKGROUND)
             self.display()
             pygame.display.flip()
@@ -120,3 +140,12 @@ class SimplePlayground(object):
                     self._running = False
                     return True
         return False
+
+    def save_data(self, data_name, path):
+        try:
+            os.makedirs(path, exist_ok=True)
+        except Exception as e:
+            print(f"An error occurred while creating the directory: {e}")
+        path = f"{path+data_name}_{str(int(time.time()))}.pickle"
+        with open(path, 'wb') as file:
+            pickle.dump(self._data_to_save, file)

@@ -23,7 +23,8 @@ class DecentralisedAPF(Behavior):
                  distance_to_target: float = 125.0,
                  interagent_spacing: float = 150.0,
                  obstacle_range: float = 40.0,
-                 sensing_range: float = 700.0):
+                 sensing_range: float = 700.0,
+                 herding_target: np.ndarray = np.array([350, 350])):
         super().__init__()
 
         self._potential_func = potential_func
@@ -64,6 +65,8 @@ class DecentralisedAPF(Behavior):
         self._change_state_again = False
         self._change_state_once_again = False
 
+        self._target = herding_target
+
     def transition(self, state: np.ndarray,
                    other_states: np.ndarray,
                    animal_states: np.ndarray,
@@ -75,9 +78,12 @@ class DecentralisedAPF(Behavior):
         return False
 
     def update(self, *args, **kwargs):
-        state = kwargs["state"]
-        other_states = kwargs["robot_states"]
-        animal_states = kwargs["animal_states"]
+        state: np.ndarray = kwargs["state"]
+        other_states: np.ndarray = kwargs["robot_states"]
+        animal_states: np.ndarray = kwargs["animal_states"]
+        animal_centroid: np.ndarray = kwargs["animal_centroid"]
+        comms: dict = kwargs["comms"]
+        all_comms: list = kwargs["all_comms"]
         # Control signal
         self._pose = state[:2]
         u = np.zeros(2)
@@ -89,108 +95,105 @@ class DecentralisedAPF(Behavior):
         d_to_target = self._distance_to_target
         spacing = self._interagent_spacing
 
-        # # Consensus check
-        # delta_adjacency_vector = self._get_delta_adjacency_vector(
-        #     animal_states,
-        #     state,
-        #     r=self._distance_to_target + 10)
+        # Consensus check
+        delta_adjacency_vector = self._get_delta_adjacency_vector(
+            animal_states,
+            state,
+            r=self._distance_to_target + 10)
 
-        # neighbor_herd_idxs = delta_adjacency_vector
+        neighbor_herd_idxs = delta_adjacency_vector
 
-        # ds_to_nearest_edge = np.Inf
-        # mean_norm_r_to_sj = np.Inf
+        ds_to_nearest_edge = np.Inf
+        mean_norm_r_to_sj = np.Inf
 
-        # if sum(neighbor_herd_idxs) > 0:
-        #     sj = animal_states[neighbor_herd_idxs, :2]
-        #     r_to_sj = di - sj
-        #     norm_r_to_sj = np.linalg.norm(r_to_sj, axis=1)
-        #     ds_to_nearest_edge = norm_r_to_sj.min()
+        if sum(neighbor_herd_idxs) > 0:
+            sj = animal_states[neighbor_herd_idxs, :2]
+            r_to_sj = di - sj
+            norm_r_to_sj = np.linalg.norm(r_to_sj, axis=1)
+            ds_to_nearest_edge = norm_r_to_sj.min()
 
-        #     mean_r_to_sj = np.sum(r_to_sj, axis=0) / sum(neighbor_herd_idxs)
-        #     mean_norm_r_to_sj = np.linalg.norm(mean_r_to_sj)
+            mean_r_to_sj = np.sum(r_to_sj, axis=0) / sum(neighbor_herd_idxs)
+            mean_norm_r_to_sj = np.linalg.norm(mean_r_to_sj)
 
-        # output_consensus_state.update({
-        #     "nearest_neighbor_ds": ds_to_nearest_edge,
-        #     "mean_ds_to_edge": mean_norm_r_to_sj
-        # })
+        comms.update({
+            "nearest_neighbor_ds": ds_to_nearest_edge,
+            "mean_ds_to_edge": mean_norm_r_to_sj
+        })
 
-        # alpha_adjacency_matrix = self._get_alpha_adjacency_matrix(
-        #     all_shepherd_states,
-        #     r=self._interagent_spacing + 5)
-        # neighbor_shepherd_idxs = alpha_adjacency_matrix[0]
-        # dr_to_nearest_edge = np.Inf
-        # mean_norm_r_to_rj = np.Inf
+        alpha_adjacency_matrix = self._get_alpha_adjacency_matrix(
+            all_shepherd_states,
+            r=self._interagent_spacing + 15)
+        neighbor_shepherd_idxs = alpha_adjacency_matrix[0]
+        dr_to_nearest_edge = np.Inf
+        mean_norm_r_to_rj = np.Inf
 
-        # if sum(neighbor_shepherd_idxs) > 0:
-        #     rj = all_shepherd_states[neighbor_shepherd_idxs, :2]
-        #     r_to_rj = di - rj
-        #     norm_r_to_rj = np.linalg.norm(r_to_rj, axis=1)
-        #     if norm_r_to_rj.shape[0] > 1:
-        #         smallest_1, smallest_2 = np.partition(norm_r_to_rj, 1)[0:2]
-        #         dr_to_nearest_edge = smallest_1 + smallest_2
-        #     else:
-        #         dr_to_nearest_edge = np.Inf
+        if sum(neighbor_shepherd_idxs) > 0:
+            rj = all_shepherd_states[neighbor_shepherd_idxs, :2]
+            r_to_rj = di - rj
+            norm_r_to_rj = np.linalg.norm(r_to_rj, axis=1)
+            if norm_r_to_rj.shape[0] > 1:
+                smallest_1, smallest_2 = np.partition(norm_r_to_rj, 1)[0:2]
+                dr_to_nearest_edge = smallest_1 + smallest_2
+            else:
+                dr_to_nearest_edge = np.Inf
 
-        #     mean_r_to_rj = np.sum(r_to_rj, axis=0) / \
-        #         sum(neighbor_shepherd_idxs)
-        #     mean_norm_r_to_rj = np.linalg.norm(mean_r_to_rj)
+            mean_r_to_rj = np.sum(r_to_rj, axis=0) / \
+                sum(neighbor_shepherd_idxs)
+            mean_norm_r_to_rj = np.linalg.norm(mean_r_to_rj)
 
-        # output_consensus_state.update({
-        #     "nearest_neighbor_2dr": dr_to_nearest_edge,
-        #     "mean_dr_to_edge": mean_norm_r_to_rj
-        # })
+        comms.update({
+            "nearest_neighbor_2dr": dr_to_nearest_edge,
+            "mean_dr_to_edge": mean_norm_r_to_rj
+        })
 
-        # total_valid = 0
-        # total_nearest_neighbor_ds = 0
-        # mean_nearest_neighbor_ds = 0
-        # s_var = np.Inf
+        total_valid = 0
+        total_nearest_neighbor_ds = 0
+        mean_nearest_neighbor_ds = 0
+        s_var = np.Inf
 
-        # total_variance = 0
-        # for consensus_state in consensus_states:
-        #     if "nearest_neighbor_ds" not in consensus_state.keys():
-        #         continue
-        #     if consensus_state["nearest_neighbor_ds"] == np.Inf:
-        #         continue
-        #     total_nearest_neighbor_ds += consensus_state["nearest_neighbor_ds"]
-        #     total_valid += 1
-        # if total_valid > 0:
-        #     mean_nearest_neighbor_ds = total_nearest_neighbor_ds / total_valid
-        #     s_var = (mean_nearest_neighbor_ds -
-        #              ds_to_nearest_edge)**2 / total_valid
+        total_variance = 0
+        for comm in all_comms:
+            if "nearest_neighbor_ds" not in comm.keys():
+                continue
+            if comm["nearest_neighbor_ds"] == np.Inf:
+                continue
+            total_nearest_neighbor_ds += comm["nearest_neighbor_ds"]
+            total_valid += 1
+        if total_valid > 0:
+            mean_nearest_neighbor_ds = total_nearest_neighbor_ds / total_valid
+            s_var = (mean_nearest_neighbor_ds -
+                     ds_to_nearest_edge)**2 / total_valid
 
-        # total_valid = 0
-        # total_nearest_neighbor_dr = 0
-        # mean_nearest_neighbor_dr = 0
-        # r_var = np.Inf
-        # for consensus_state in consensus_states:
-        #     if "nearest_neighbor_2dr" not in consensus_state.keys():
-        #         continue
-        #     if consensus_state["nearest_neighbor_2dr"] == np.Inf:
-        #         continue
-        #     total_nearest_neighbor_dr += consensus_state["nearest_neighbor_2dr"]
-        #     total_valid += 1
-        # if total_valid > 0:
-        #     mean_nearest_neighbor_dr = total_nearest_neighbor_dr / total_valid
-        #     r_var = (mean_nearest_neighbor_dr -
-        #              dr_to_nearest_edge)**2 / total_valid
+        total_valid = 0
+        total_nearest_neighbor_dr = 0
+        mean_nearest_neighbor_dr = 0
+        r_var = np.Inf
+        for consensus_state in all_comms:
+            if "nearest_neighbor_2dr" not in consensus_state.keys():
+                continue
+            if consensus_state["nearest_neighbor_2dr"] == np.Inf:
+                continue
+            total_nearest_neighbor_dr += consensus_state["nearest_neighbor_2dr"]
+            total_valid += 1
+        if total_valid > 0:
+            mean_nearest_neighbor_dr = total_nearest_neighbor_dr / total_valid
+            r_var = (mean_nearest_neighbor_dr -
+                     dr_to_nearest_edge)**2 / total_valid
 
-        # output_consensus_state.update(
-        #     {"distribution_evenness": s_var + r_var})
+        comms.update(
+            {"distribution_evenness": s_var + r_var})
 
-        # # Stabilise formation
-        # total_valid = 0
-        # for consensus_state in consensus_states:
-        #     if "distribution_evenness" not in consensus_state.keys():
-        #         continue
-        #     total_variance += consensus_state["distribution_evenness"]
+        # Stabilise formation
+        total_valid = 0
+        for consensus_state in all_comms:
+            if "distribution_evenness" not in consensus_state.keys():
+                continue
+            total_variance += consensus_state["distribution_evenness"]
 
-        # # Get nearest distance to target
-        # d_nearest_to_target = np.linalg.norm(self._pose - target)
-        # output_consensus_state.update(
-        #     {"d_nearest_to_target": d_nearest_to_target})
-
-        # if 1/total_variance:
-        #     self._change_state = True
+        # Get nearest distance to target
+        d_nearest_to_target = np.linalg.norm(self._pose - self._target)
+        comms.update(
+            {"d_nearest_to_target": d_nearest_to_target})
 
         tuning_ps = 1
         tuning_po = 1
@@ -288,15 +291,22 @@ class DecentralisedAPF(Behavior):
                                                obstacle_list=obstacles,
                                                d=self._obstacle_range,
                                                gain=self._Co)
-        # herd_mean = np.sum(
-        #     animal_states[:, :2], axis=0) / animal_states.shape[0]
+        herd_mean = np.sum(
+            animal_states[:, :2], axis=0) / animal_states.shape[0]
 
         # d_from_cetroid_to_target = np.linalg.norm(
         #     herd_mean - np.array([1000, 350]))
 
+        if 1/total_variance:
+            move_to_target = True
+            tuning_ps = 0.5
+            tuning_po = 5
+            tuning_pv = 0.5
+
         u = tuning_ps*ps + tuning_po*po + tuning_pv*pv + p_avoid
-        # if move_to_target:
-        #     u = u + 0.002*(-(herd_mean - np.array([1000, 350])))
+
+        if move_to_target:
+            u = u + 0.075*(-(herd_mean - self._target))
 
         self._force_u = u
         return u
@@ -309,12 +319,12 @@ class DecentralisedAPF(Behavior):
             pygame.draw.line(
                 screen, pygame.Color("yellow"),
                 tuple(self._pose), tuple(self._pose + 5 * (self._force_ps)))
-            pygame.draw.line(
-                screen, pygame.Color("grey"),
-                tuple(self._pose), tuple(self._pose + 2 * (self._force_u)))
+        pygame.draw.line(
+            screen, pygame.Color("blue"),
+            tuple(self._pose), tuple(self._pose + 2 * (self._force_u)))
 
-        pygame.draw.circle(screen, pygame.Color("white"),
-                           tuple(np.array([1000, 350])), 50, 1)
+        pygame.draw.circle(screen, pygame.Color("black"),
+                           tuple(self._target), 50, 1)
         if self._plot_range:
             pygame.draw.circle(screen, pygame.Color("white"),
                                tuple(self._pose), self._distance_to_target, 1)

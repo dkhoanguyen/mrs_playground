@@ -177,7 +177,7 @@ class MathematicalFlock(Behavior):
 
         herd_mean = np.sum(
             animal_states[:, :2], axis=0) / animal_states.shape[0]
-        if np.linalg.norm(herd_mean - self._target) < 30:
+        if np.linalg.norm(herd_mean - self._target) < 50:
             self._is_at_target = True
 
         robot: Robot
