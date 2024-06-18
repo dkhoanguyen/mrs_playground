@@ -32,3 +32,15 @@ def get_xy_points_at_intervals_given_index(x_data, y_data, interval, sampling_ra
     for i in range(len(index_list)):
         extracted_points.append((x_data[index_list[i]], y_data[index_list[i]]))
     return extracted_points
+
+
+def extract_data(data, key, seconds):
+    all_robots_name = list(data[key].keys())
+    all_x = []
+    all_y = []
+    for i, robot_name in enumerate(all_robots_name):
+        robot_data = data['animals'][robot_name]
+        x, y = data_preprocessing(robot_data, seconds_to_remove=seconds)
+        all_x.append(x)
+        all_y.append(y)
+    return all_x, all_y

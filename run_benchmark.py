@@ -13,7 +13,7 @@ def main():
                         help='Render gui', action='store_true')
     args = parser.parse_args()
 
-    for i in range(30):
+    for i in range(60):
         run_cbf(i, args.gui)
         run_apf(i, args.gui)
 

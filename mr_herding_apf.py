@@ -181,7 +181,7 @@ def run_apf(run_id: int = 0, gui: bool = False):
     while env.ok:
         env.step()
         env.render()
-    env.save_data(data_name=f"apf_{str(run_id)}", path="data/apf/")
+    env.save_data(data_name=f"apf_{str(run_id)}", path="data/benchmarks/apf/")
 
 
 if __name__ == '__main__':

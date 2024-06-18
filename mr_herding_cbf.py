@@ -185,7 +185,7 @@ def run_cbf(run_id: int = 0, gui: bool = False):
     while env.ok:
         env.step()
         env.render()
-    env.save_data(data_name=f"cbf_{str(run_id)}", path="data/cbf/")
+    env.save_data(data_name=f"cbf_{str(run_id)}", path="data/benchmarks/cbf/")
 
 
 if __name__ == '__main__':

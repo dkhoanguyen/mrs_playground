@@ -35,6 +35,9 @@ def plot_animal_positions(data, window_size, ax, index_list, angle_list):
         plot_triangle_with_centrer(
             center, height, base, angle_list[i], 'red', ax)
 
+    colors = np.linspace(0, 1, len(all_x))
+    cmap = plt.get_cmap('Reds')
+
     for i in range(len(all_x)):
         ax.plot(all_x[i], all_y[i], '-', color='red', lw=1)
 
@@ -117,7 +120,7 @@ full_path = os.path.join(path, name + ".pickle")
 with open(full_path, 'rb') as file:
     data = pickle.load(file)
 
-fig, ax = plt.subplots(2, 3, figsize=(20, 8.25))
+fig, ax = plt.subplots(2, 3, figsize=(16, 9))
 
 #
 plot_animal_positions(data=data, window_size=100,
@@ -156,4 +159,4 @@ plot_robots_formation(data=data, window_size=100,
                       ax=ax[1, 2], index_list=[21300], time=21300/100)
 
 plt.tight_layout()
-plt.show()
+plt.savefig('six_subplot_traj_overtime.pdf', format='pdf')
