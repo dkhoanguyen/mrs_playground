@@ -1,38 +1,38 @@
+import numpy as np
 import matplotlib.pyplot as plt
 
-# Define the corners of the square
-corners_x = [0, 1, 1, 0, 0]
-corners_y = [0, 0, 1, 1, 0]
+# Number of steps
+num_steps = 20000
+
+# Generate random walk
+x = np.cumsum(np.random.randn(num_steps))
+y = np.cumsum(np.random.randn(num_steps))
+
+# Create a colormap from dark red to white
+colors = np.linspace(0, 1, num_steps)
+cmap = plt.get_cmap('Reds')
 
 # Create the figure and axis
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(10, 6))
 
-# Plot the corners
-ax.scatter(corners_x, corners_y, color='blue')
+# Plot the random walk
+for i in range(num_steps - 1):
+    ax.plot(x[i:i+2], y[i:i+2], color=cmap(colors[i]), linewidth=2)
 
-# Draw the lines with gaps in the middle of each edge
-for i in range(len(corners_x) - 1):
-    x_values = [corners_x[i],
-                (corners_x[i] + corners_x[i+1]) / 2, corners_x[i+1]]
-    y_values = [corners_y[i],
-                (corners_y[i] + corners_y[i+1]) / 2, corners_y[i+1]]
+# Add a color bar for reference
+sm = plt.cm.ScalarMappable(
+    cmap=cmap, norm=plt.Normalize(vmin=0, vmax=num_steps))
+sm.set_array([])
+cbar = plt.colorbar(sm, ax=ax)
+cbar.set_label('Step Index')
 
-    # Plot the first half of the edge
-    ax.plot(x_values[:2], y_values[:2], color='blue')
+# Mark the starting and ending points
+ax.scatter(x[0], y[0], color='white',
+           edgecolor='black', zorder=5, label='Start')
+ax.scatter(x[-1], y[-1], color='red', edgecolor='black', zorder=5, label='End')
 
-    # Plot the second half of the edge
-    ax.plot(x_values[1:], y_values[1:], color='blue')
-
-# Set the limits and aspect ratio to make the plot square
-ax.set_xlim(-0.5, 1.5)
-ax.set_ylim(-0.5, 1.5)
-ax.set_aspect('equal')
-
-# Add grid and labels for better visualization
-ax.grid(True)
-ax.set_xlabel('X-axis')
-ax.set_ylabel('Y-axis')
-ax.set_title('Square with Corners and Gaps in the Middle of Edges')
-
-# Show the plot
+ax.set_title("2D Random Squiggly Line with Gradient Effect")
+ax.set_xlabel("X")
+ax.set_ylabel("Y")
+ax.legend()
 plt.show()

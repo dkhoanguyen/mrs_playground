@@ -172,9 +172,9 @@ class DecentralisedCBF(Behavior):
 
             # Move forward target if angle is aligned
             if abs(angle_to_target) < 0.2:
-                u_target = unit_vector(self._target - state[:2]) * np.linalg.norm(u_nom)
+                u_target = unit_vector(
+                    self._target - state[:2]) * np.linalg.norm(u_nom)
                 u_nom = u_nom + u_target
-
 
         # Scale down u
         if np.linalg.norm(u_nom) > self._max_u:
@@ -185,20 +185,26 @@ class DecentralisedCBF(Behavior):
                                                     min_distance=self._min_animal_d,
                                                     gamma_min=1.0,
                                                     max_distance=self._max_animal_d,
-                                                    gamma_max=1.0,
+                                                    gamma_max=10.0,
                                                     relax_d_min=False,
                                                     relax_d_max=True)
         A = np.vstack((A, A_r_a))
-        b = np.vstack((b, b_r_a))  
+        b = np.vstack((b, b_r_a))
 
+        alpha_adjacency_matrix = self._get_alpha_adjacency_matrix(state,
+                                                                  other_states,
+                                                                  r=self._max_robot_d + 50)
+        gamma_max = 0.01
+        if not enforce_formation:
+            gamma_max = 1.0
         A_r_r, b_r_r = self._robot_robot_formation(state=state,
                                                    v_nom=utils.unit_vector(
-                                                                       u_nom)*self._max_u,
-                                                   robot_states=other_states,
+                                                       u_nom)*self._max_u,
+                                                   robot_states=other_states[alpha_adjacency_matrix, :],
                                                    min_distance=self._min_robot_d,
                                                    gamma_min=1.0,
                                                    max_distance=self._max_robot_d,
-                                                   gamma_max=0.1,
+                                                   gamma_max=gamma_max,
                                                    relax_d_min=False,
                                                    relax_d_max=not enforce_formation)
         A = np.vstack((A, A_r_r))
@@ -226,16 +232,16 @@ class DecentralisedCBF(Behavior):
         pygame.draw.line(
             screen, pygame.Color("white"),
             tuple(self._in_vision_animal_pos), tuple(self._in_vision_animal_pos + 10 * (self._animal_heading)))
-        
+
         pygame.draw.circle(screen, pygame.Color("black"),
                            tuple(self._target), 50, 1)
 
-        # pygame.draw.circle(screen, pygame.Color("red"),
-        #                    tuple(self._pose), self._max_robot_d, 1)
-        # pygame.draw.circle(screen, pygame.Color("black"),
-        #                    tuple(self._target), 50, 1)
-        # pygame.draw.circle(screen, pygame.Color("dark green"),
-        #                    tuple(self._pose), self._min_robot_d, 1)
+        pygame.draw.circle(screen, pygame.Color("red"),
+                           tuple(self._pose), self._max_robot_d, 1)
+        pygame.draw.circle(screen, pygame.Color("black"),
+                           tuple(self._target), 50, 1)
+        pygame.draw.circle(screen, pygame.Color("dark green"),
+                           tuple(self._pose), self._min_robot_d, 1)
         return super().display(screen)
 
     def _edge_following(self, xi: np.ndarray, xj: np.ndarray,
@@ -350,7 +356,7 @@ class DecentralisedCBF(Behavior):
         if len(planes) > 0:
             A_orca, b_ocra = ORCA.build_constraint(planes, vi,
                                                    gamma_min,
-                                                   1.2)
+                                                   relax_d_min)
             A = np.vstack((A, A_orca,))
             b = np.vstack((b, b_ocra,))
 
@@ -359,7 +365,7 @@ class DecentralisedCBF(Behavior):
             ai=self._max_u, aj=self._max_u,
             d=max_distance, gamma=gamma_max,
             relax=relax_d_max)
-        
+
         A = np.vstack((A, A_dmax))
         b = np.vstack((b, b_dmax))
 
@@ -432,3 +438,11 @@ class DecentralisedCBF(Behavior):
             u = x[:2]
 
         return u, x
+
+    def _get_alpha_adjacency_matrix(self, state: np.ndarray, agent_states: np.ndarray,
+                                    r: float) -> np.ndarray:
+        adj_vector = []
+        for i in range(agent_states.shape[0]):
+            adj_vector.append(np.linalg.norm(
+                state[:2] - agent_states[i, :2]) <= r)
+        return np.array(adj_vector, dtype=np.bool8)

@@ -177,7 +177,12 @@ class MathematicalFlock(Behavior):
 
         herd_mean = np.sum(
             animal_states[:, :2], axis=0) / animal_states.shape[0]
-        if np.linalg.norm(herd_mean - self._target) < 50:
+        # Find distribution range
+        all_distribution_range = np.linalg.norm(
+            animal_states[:, :2]-herd_mean, axis=1)
+        distribution_range_outmost = all_distribution_range[all_distribution_range > 130]
+        # print(distribution_range_outmost)
+        if np.linalg.norm(herd_mean - self._target) < 50 and len(distribution_range_outmost) <= 0.95*len(self._animals):
             self._is_at_target = True
 
         robot: Robot
@@ -204,7 +209,7 @@ class MathematicalFlock(Behavior):
             qi = animal_states[idx, :2]
             u_pred = self._predator_avoidance_term(
                 si=qi, r=self._danger_range, k=4)
-            avoidance_v[idx, :] += 1 * u_pred + 1 * self._densities[idx, :2]
+            avoidance_v[idx, :] += 1.5 * u_pred + 1 * self._densities[idx, :2]
 
         # x_t = animal_states[:,:4]
         # x_t_1 = self._dynamics.step(x_t=x_t,u_t=qdot)

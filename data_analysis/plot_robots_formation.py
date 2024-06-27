@@ -12,6 +12,7 @@ from data_preprocessing import *
 from plotting_utils import *
 
 color_list = ['darkorange', 'hotpink', 'slateblue']
+color_map_list = ['Oranges', 'RdPu', 'Blues']
 plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Computer Modern'
@@ -35,11 +36,12 @@ def plot_animal_positions(data, window_size, ax, index_list, angle_list):
         plot_triangle_with_centrer(
             center, height, base, angle_list[i], 'red', ax)
 
-    colors = np.linspace(0, 1, len(all_x))
-    cmap = plt.get_cmap('Reds')
-
     for i in range(len(all_x)):
-        ax.plot(all_x[i], all_y[i], '-', color='red', lw=1)
+        colors = np.linspace(0, 0.7, len(all_x[i]))
+        cmap = plt.get_cmap('Reds')
+        for j in range(len(all_x[i]) - 1):
+            ax.plot(all_x[i][j:j+2], all_y[i][j:j+2],
+                    color=cmap(colors[j]), linewidth=1)
 
 
 def plot_robots_formation(data, window_size, ax, index_list, time, plot_legend=False):
@@ -58,11 +60,19 @@ def plot_robots_formation(data, window_size, ax, index_list, time, plot_legend=F
             all_y.append(y[:index_list[0]+1])
 
     for i in range(len(all_x)):
-        if len(index_list) > 1:
-            ax.plot(all_x[i][index_list[0]:index_list[1]+1], all_y[i]
-                    [index_list[0]:index_list[1]+1], '--', color=color_list[i])
-        else:
-            ax.plot(all_x[i], all_y[i], '--', color=color_list[i], lw=1.5)
+        colors = np.linspace(0, 0.6, len(all_x[i]))
+        cmap = plt.get_cmap(color_map_list[i])
+        for j in range(len(all_x[i]) - 1):
+            ax.plot(all_x[i][j:j+2], all_y[i][j:j+2], '-',
+                    color=cmap(colors[j]), linewidth=0.5)
+
+    # for i in range(len(all_x)):
+
+    #     if len(index_list) > 1:
+    #         ax.plot(all_x[i][index_list[0]:index_list[1]+1], all_y[i]
+    #                 [index_list[0]:index_list[1]+1], '--', color=color_list[i])
+    #     else:
+    #         ax.plot(all_x[i], all_y[i], '--', color=color_list[i], lw=1.5)
 
     actual_index = index_list[1] if len(index_list) > 1 else index_list[0]
     xy_points_1 = get_xy_points_at_intervals_given_index(
@@ -159,4 +169,5 @@ plot_robots_formation(data=data, window_size=100,
                       ax=ax[1, 2], index_list=[21300], time=21300/100)
 
 plt.tight_layout()
+# plt.show()
 plt.savefig('six_subplot_traj_overtime.pdf', format='pdf')
