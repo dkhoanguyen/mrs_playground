@@ -58,8 +58,6 @@ def main():
 
     # Spawn robots
     robots = PlaygroundFactory.spawn_entities(entity_config['robot'], Robot)
-
-    sensing_config["sensing_radius"] = 1000.0
     # Add sensors and dynamics to robots
     sensors = PlaygroundFactory.add_sensing(entities=robots,
                                             config=sensing_config,
@@ -135,8 +133,6 @@ def run_outmost(run_id: int = 0, gui: bool = False):
 
     # Spawn robots
     robots = PlaygroundFactory.spawn_entities(entity_config['robot'], Robot)
-
-    sensing_config["sensing_radius"] = 400.0
     # Add sensors and dynamics to robots
     sensors = PlaygroundFactory.add_sensing(entities=robots,
                                             config=sensing_config,
@@ -188,7 +184,7 @@ def run_outmost(run_id: int = 0, gui: bool = False):
         env.step()
         env.render()
     env.save_data(data_name=f"outmost_{str(run_id)}",
-                  path="data/benchmarks/outmost/")
+                  path="data/aggregation_pref/success_rate/low/4/outmost/")
 
 
 if __name__ == '__main__':

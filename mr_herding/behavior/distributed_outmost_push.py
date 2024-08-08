@@ -15,7 +15,7 @@ class DistributedOutmostPush(Behavior):
         super().__init__()
 
         self._max_u = max_u
-        self._sensing_range = 3000.0
+        self._sensing_range = 300.0
         self._collision_avoidance_d = collision_avoidance_d
         self._target = herding_target
 
@@ -31,21 +31,30 @@ class DistributedOutmostPush(Behavior):
         all_comms: list = kwargs["all_comms"]
         id: int = kwargs["id"]
 
-        delta = 0.2
-        R_e = 120
+        delta = 0.5
+        R_e = 150
+
+        # Check animal in sensing range
+        if animal_states.shape[0] == 0:
+            # Move towards centroid to find animals
+            f_ove_robot = self._overlap_avoidance(
+                state, other_states, 170.0)
+            k_ove_robot = 100000
+            f_ste = 100 * utils.unit_vector(animal_centroid[:2] - state[:2])
+
+            u_i = k_ove_robot * f_ove_robot + f_ste
+            return u_i
 
         y_out = self._find_outmost_evader(
             state, animal_states, self._target, self._sensing_range)
-        # if len(y_out) < 1:
-        #     # No control input if no evaders are within range
-        #     return np.array([0.0, 0.0])
+
         f_ove_robot = self._overlap_avoidance(
-            state, other_states, 200.0)
+            state, other_states, 170.0)
         f_ove_animal = self._overlap_avoidance(
-            state, animal_states, 120.0)
+            state, animal_states, 150.0)
         f_ste = self._steering_force(state, y_out, self._target, delta, R_e)
 
-        k_ove_robot = 1000000
+        k_ove_robot = 500000
         k_ove_animal = 1000000
         k_ste = 1
 
@@ -61,6 +70,8 @@ class DistributedOutmostPush(Behavior):
             screen, pygame.Color("blue"),
             tuple(self._pose), tuple(self._pose + (self._f_ove)))
         pygame.draw.circle(screen, pygame.Color("black"),
+                           tuple(self._target), 50, 1)
+        pygame.draw.circle(screen, pygame.Color("green"),
                            tuple(self._target), 50, 1)
         return super().display(screen)
 

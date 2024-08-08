@@ -6,6 +6,7 @@ import networkx as nx
 
 # QP solver
 from qpsolvers import solve_qp
+from scipy import sparse
 
 from mrs_playground.common.behavior import Behavior
 from mrs_playground.utils import utils
@@ -84,7 +85,7 @@ class DecentralisedCBF(Behavior):
 
         # If no animal, move toward the initial herding pose
         if animal_states.shape[0] == 0:
-            u_nom = 0.1 * (animal_centroid - pose)
+            u_nom = (animal_centroid - pose)
             if np.linalg.norm(u_nom) > self._max_u:
                 u_nom = self._max_u * utils.unit_vector(u_nom)
 
@@ -106,7 +107,7 @@ class DecentralisedCBF(Behavior):
                                      [-self._max_u, -self._max_u, -np.inf, -np.inf]),
                                  ub=np.array(
                                      [self._max_u, self._max_u, np.inf, np.inf]),
-                                 p_omega=1000000.0,
+                                 p_omega=100000000.0,
                                  omega_0=1.0)
             self._prev_x = x
             self._u = u_nom
@@ -160,7 +161,7 @@ class DecentralisedCBF(Behavior):
             angle_to_target = angle_between_with_direction(
                 animal_in_vision_to_target, in_vision_animal_heading)
 
-            theta = angle_to_target
+            theta = 2 * angle_to_target
             if np.abs(theta) > np.pi/2:
                 theta = np.sign(theta) * np.pi/2
 
@@ -171,10 +172,9 @@ class DecentralisedCBF(Behavior):
             u_nom = u_nom_flipped.reshape((2,))
 
             # Move forward target if angle is aligned
-            if abs(angle_to_target) < 0.2:
-                u_target = unit_vector(
-                    self._target - state[:2]) * np.linalg.norm(u_nom)
-                u_nom = u_nom + u_target
+            if abs(angle_to_target) < 0.25:
+                u_target = self._target - state[:2]
+                u_nom = u_nom + 2 * u_target
 
         # Scale down u
         if np.linalg.norm(u_nom) > self._max_u:
@@ -194,7 +194,7 @@ class DecentralisedCBF(Behavior):
         alpha_adjacency_matrix = self._get_alpha_adjacency_matrix(state,
                                                                   other_states,
                                                                   r=self._max_robot_d + 50)
-        gamma_max = 0.01
+        gamma_max = 0.1
         if not enforce_formation:
             gamma_max = 1.0
         A_r_r, b_r_r = self._robot_robot_formation(state=state,
@@ -218,7 +218,7 @@ class DecentralisedCBF(Behavior):
                                  [-self._max_u, -self._max_u, -np.inf, -np.inf]),
                              ub=np.array(
                                  [self._max_u, self._max_u, np.inf, np.inf]),
-                             p_omega=100000000.0,
+                             p_omega=10000000.0,
                              omega_0=1.0)
         self._u = u_nom
         self._prev_x = x
@@ -242,6 +242,8 @@ class DecentralisedCBF(Behavior):
                            tuple(self._target), 50, 1)
         pygame.draw.circle(screen, pygame.Color("dark green"),
                            tuple(self._pose), self._min_robot_d, 1)
+        pygame.draw.circle(screen, pygame.Color("grey"),
+                           tuple(self._pose), self._min_animal_d, 1)
         return super().display(screen)
 
     def _edge_following(self, xi: np.ndarray, xj: np.ndarray,
@@ -299,20 +301,45 @@ class DecentralisedCBF(Behavior):
         vi = state[2:4]
         vj = animal_states[:, 2:4]
 
-        A_dmin, b_dmin = MinDistance.build_constraint(
-            xi=xi, xj=xj, vi=vi, vj=vj,
-            ai=self._max_u, aj=self._max_u,
-            d=min_distance, gamma=gamma_min,
-            relax=relax_d_min)
+        # A_dmin, b_dmin = MinDistance.build_constraint(
+        #     xi=xi, xj=xj, vi=vi, vj=vj,
+        #     ai=self._max_u, aj=self._max_u,
+        #     d=min_distance, gamma=gamma_min,
+        #     relax=relax_d_min)
 
-        A = np.vstack((A, A_dmin))
-        b = np.vstack((b, b_dmin))
+        # A = np.vstack((A, A_dmin))
+        # b = np.vstack((b, b_dmin))
+
+        xi = state[:2]
+        xj = animal_states[:, :2]
+        # vi = vi
+        vj = animal_states[:, 2:4]
+
+        ri = min_distance
+        rj = np.ones(animal_states.shape[0]) * 0
+        weight = np.ones(animal_states.shape[0]) * 1.0
+
+        A = np.empty((0, 4))
+        b = np.empty((0, 1))
+
+        planes = ORCA.construct_orca_planes(xi=xi, xj=xj, vi=vi, vj=vj,
+                                            ri=ri, rj=rj,
+                                            weight=weight,
+                                            buffered_r=0.0,
+                                            time_horizon=2.0)
+        if len(planes) > 0:
+            A_orca, b_ocra = ORCA.build_constraint(planes, vi,
+                                                   gamma_min,
+                                                   relax_d_min)
+            A = np.vstack((A, A_orca,))
+            b = np.vstack((b, b_ocra,))
 
         A_dmax, b_dmax = MaxDistance.build_constraint(
             xi=xi, xj=xj, vi=vi, vj=vj,
             ai=self._max_u, aj=self._max_u,
             d=max_distance, gamma=gamma_max,
-            relax=relax_d_max)
+            relax=relax_d_max,
+            relax_weight=1.0)
 
         A = np.vstack((A, A_dmax))
         b = np.vstack((b, b_dmax))
@@ -364,7 +391,8 @@ class DecentralisedCBF(Behavior):
             xi=xi, xj=xj, vi=vi, vj=vj,
             ai=self._max_u, aj=self._max_u,
             d=max_distance, gamma=gamma_max,
-            relax=relax_d_max)
+            relax=relax_d_max,
+            relax_weight=0.5)
 
         A = np.vstack((A, A_dmax))
         b = np.vstack((b, b_dmax))
@@ -395,7 +423,7 @@ class DecentralisedCBF(Behavior):
                                             time_horizon=2.0)
         if len(planes) > 0:
             A_orca, b_ocra = ORCA.build_constraint(planes, vi,
-                                                   1.2)
+                                                   1.2, False)
             A = np.vstack((A, A_orca,))
             b = np.vstack((b, b_ocra,))
 
@@ -422,7 +450,7 @@ class DecentralisedCBF(Behavior):
         # Control bound synthesis
         H[2, 2] = p_omega
         # Slack variable
-        H[3, 3] = 1.0
+        H[3, 3] = 1
         p = -2 * np.array([u_nom[0], u_nom[1], omega_0 * p_omega, 0.0])
         x = solve_qp(P=H, q=p, G=A, h=b, lb=lb, ub=ub,
                      solver="cvxopt")  # osqp or cvxopt
@@ -431,7 +459,7 @@ class DecentralisedCBF(Behavior):
         if x is None:
             if np.linalg.norm(vi) > 0:
                 # Slow to stop
-                u = 2.0 * (-vi)
+                u = 20.0 * (-vi)
             else:
                 u = np.zeros(2)
         else:

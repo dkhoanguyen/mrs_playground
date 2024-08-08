@@ -148,4 +148,5 @@ class SimplePlayground(object):
             print(f"An error occurred while creating the directory: {e}")
         path = f"{path+data_name}_{str(int(time.time()))}.pickle"
         with open(path, 'wb') as file:
+            self._data_to_save["mean_dist_range"] = self._behaviors[0]._mean_dist_range
             pickle.dump(self._data_to_save, file)

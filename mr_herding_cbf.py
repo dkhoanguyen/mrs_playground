@@ -11,6 +11,7 @@ from mrs_playground.dynamic.point_mass_system import *
 from mrs_playground.sensing.radius_sensing import RadiusSensing
 
 from mrs_playground.behavior.mathematical_flock import MathematicalFlock
+from mrs_playground.behavior.alternative_flocking import AlternativeFlock
 
 from mrs_playground.environment.simple_playground import SimplePlayground
 from mrs_playground.environment.playground_factory import PlaygroundFactory
@@ -184,7 +185,8 @@ def run_cbf(run_id: int = 0, gui: bool = False):
     while env.ok:
         env.step()
         env.render()
-    env.save_data(data_name=f"cbf_{str(run_id)}", path="data/benchmarks/cbf/")
+    env.save_data(data_name=f"cbf_{str(run_id)}",
+                  path="data/aggregation_pref/success_rate/low/4/cbf/")
 
 
 if __name__ == '__main__':

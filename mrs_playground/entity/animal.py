@@ -13,7 +13,7 @@ class Animal(Entity):
         super().__init__(
             pose=pose,
             velocity=velocity,
-            image_path='empty.png')
+            image_path='red_triangle.png')
 
     def __str__(self) -> str:
         return "animal"
@@ -24,6 +24,6 @@ class Animal(Entity):
     def display(self, screen: pygame.Surface, debug=False):
         # Update graphics accordingly
         self._move(self._velocity)
-        pygame.draw.circle(screen, pygame.Color(
-            "red2"), tuple(self._pose), 7)
+        # pygame.draw.circle(screen, pygame.Color(
+        #     "red2"), tuple(self._pose), 7)
         return super().display(screen, debug)

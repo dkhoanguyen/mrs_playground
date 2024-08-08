@@ -1,34 +1,46 @@
-import numpy as np
-import matplotlib.pyplot as plt
+import sympy as sp
 
-# Define the circle parameters
-radius = 1
-theta = np.linspace(0, 2 * np.pi, 100)  # Full circle
+# Define the symbols
+v_rx, v_ry = sp.symbols('v_rx v_ry')  # Velocity of the robot
+v_ox, v_oy = sp.symbols('v_ox v_oy')  # Velocity of the obstacle
+u_rx, u_ry = sp.symbols('u_rx u_ry')  # Acceleration of the robot
+u_ox, u_oy = sp.symbols('u_ox u_oy')  # Acceleration of the obstacle
 
-# Define the circle
-x_circle = radius * np.cos(theta)
-y_circle = radius * np.sin(theta)
+# Define the relative velocity and acceleration
+v_rox = v_rx - v_ox
+v_roy = v_ry - v_oy
+u_rox = u_rx - u_ox
+u_roy = u_ry - u_oy
 
-# Generate a random line within the bounds of the circle
-# Ensure the line is within the circle's bounds
-x_line = np.linspace(-radius, radius, 100)
-y_line = np.random.uniform(-radius, radius, size=x_line.shape)
+# Define the boundary vector components
+v_b1x, v_b1y = sp.symbols('v_b1x v_b1y')
 
-# Plot the circle and the line
-plt.plot(x_circle, y_circle, label='Circle')
-plt.plot(x_line, y_line, label='Random Line')
+# Define the projection function
+v_ro = sp.Matrix([v_rox, v_roy])
+v_b1 = sp.Matrix([v_b1x, v_b1y])
+proj_v_ro_on_v_b1 = (v_ro.dot(v_b1) / v_b1.dot(v_b1)) * v_b1
 
-# Fill the area between the circle and the line
-plt.fill_between(x_line, y_circle, y_line, where=(
-    y_line <= y_circle), color='skyblue', alpha=0.5)
+# Differentiate the projection function with respect to time
+t = sp.symbols('t')
+v_rx_t = sp.Function('v_rx')(t)
+v_ry_t = sp.Function('v_ry')(t)
+v_ox_t = sp.Function('v_ox')(t)
+v_oy_t = sp.Function('v_oy')(t)
+u_rx_t = sp.Function('u_rx')(t)
+u_ry_t = sp.Function('u_ry')(t)
+u_ox_t = sp.Function('u_ox')(t)
+u_oy_t = sp.Function('u_oy')(t)
 
-# Set the aspect ratio to be equal
-plt.gca().set_aspect('equal', adjustable='box')
+# Replace the velocity symbols with their time-dependent functions
+v_ro_t = sp.Matrix([v_rx_t - v_ox_t, v_ry_t - v_oy_t])
+v_b1_t = sp.Matrix([v_b1x, v_b1y])
 
-# Add labels and legend
-plt.xlabel('x')
-plt.ylabel('y')
-plt.legend()
+# Define the projection as a function of time
+proj_v_ro_on_v_b1_t = (v_ro_t.dot(v_b1_t) / v_b1_t.dot(v_b1_t)) * v_b1_t
 
-# Show the plot
-plt.show()
+# Differentiate with respect to time
+d_proj_v_ro_on_v_b1_t = sp.diff(proj_v_ro_on_v_b1_t, t)
+
+# Simplify the result
+d_proj_v_ro_on_v_b1_t_simplified = sp.simplify(d_proj_v_ro_on_v_b1_t)
+print(d_proj_v_ro_on_v_b1_t_simplified)

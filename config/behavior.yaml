@@ -1,12 +1,12 @@
 math_flock:
   params:
     follow_cursor: false
-    sensing_range: 60
-    danger_range: 120
+    sensing_range: 70
+    danger_range: 155
     initial_consensus: [800, 350]
-    max_v: 7.5
+    max_v: 5
     dt: 0.1
-    distance: 40
+    distance: 50
     target: [350, 350]
   constants:
     c1_alpha: 3
@@ -48,10 +48,10 @@ herding_cbf:
     max_u: 10
     min_robot_d: 170
     max_robot_d: 180
-    min_animal_d: 120
-    max_animal_d: 150
-    collision_avoidance_d: 80
-    converge_std: 10
+    min_animal_d: 150
+    max_animal_d: 160
+    collision_avoidance_d: 120
+    converge_std: 20
     herding_target: [350, 350]
     coverage: 0.5
 

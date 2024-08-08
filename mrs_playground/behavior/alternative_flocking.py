@@ -67,7 +67,7 @@ class MathUtils():
             return np.array(v) / n
 
 
-class MathematicalFlock(Behavior):
+class AlternativeFlock(Behavior):
     C1_alpha = 3
     C2_alpha = 2 * np.sqrt(C1_alpha)
     C1_beta = 20
@@ -134,8 +134,6 @@ class MathematicalFlock(Behavior):
         self._is_at_target = False
         self._target = target
 
-        self._mean_dist_range = []
-
     # Animal
     def add_animal(self, animal: Animal):
         self._animals.append(animal)
@@ -143,10 +141,6 @@ class MathematicalFlock(Behavior):
     # Robot
     def add_robot(self, robot: Robot):
         self._robots.append(robot)
-
-    # # Obstacle
-    # def add_obstacle(self, obstacle: Obstacle):
-    #     self._obstacles.append(obstacle)
 
     def set_consensus(self, consensus: np.ndarray):
         self._consensus = consensus
@@ -183,22 +177,8 @@ class MathematicalFlock(Behavior):
         all_distribution_range = np.linalg.norm(
             animal_states[:, :2]-herd_mean, axis=1)
         distribution_range_outmost = all_distribution_range[all_distribution_range > 130]
-
-        # Calculate the mean and standard deviation of the data
-        mean = np.mean(all_distribution_range)
-        std_dev = np.std(all_distribution_range)
-
-        # Calculate the Z-scores
-        z_scores = (all_distribution_range - mean) / std_dev
-        all_distribution_range = all_distribution_range[all_distribution_range < 250]
-
-        mean_distribution_range = np.average(all_distribution_range)
-        # print(mean_distribution_range)
-        self._mean_dist_range.append(mean_distribution_range)
-
-        print(mean_distribution_range)
-
-        if np.linalg.norm(herd_mean - self._target) < 100 and mean_distribution_range <= 100:
+        # print(distribution_range_outmost)
+        if np.linalg.norm(herd_mean - self._target) < 50 and len(distribution_range_outmost) <= 0.95*len(self._animals):
             self._is_at_target = True
 
         robot: Robot
@@ -208,25 +188,27 @@ class MathematicalFlock(Behavior):
             robot_states = np.vstack(
                 (robot_states, robot.state[:4]))
 
-        global_clustering = self._global_clustering(
-            animal_states, robot_states)
         local_clustering = self._local_clustering(
             animal_states, robot_states, k=1)
+        global_clustering = self._global_clustering(
+            animal_states, robot_states)
 
         flocking = self._flocking(animal_states, robot_states)
 
         self._densities = self._herd_density(animal_states=animal_states,
                                              robot_states=robot_states)
 
-        qdot = flocking + 0.01 * local_clustering
+        # aggregation = self._low_aggreggation_nn(animal_states)
+
+        qdot = flocking + local_clustering
 
         avoidance_v = np.zeros_like(animal_states[:, 2:4])
         for idx in range(animal_states.shape[0]):
             qi = animal_states[idx, :2]
             u_pred = self._predator_avoidance_term(
                 si=qi, r=self._danger_range, k=4)
-            avoidance_v[idx, :] += 0.25 * u_pred + \
-                0.1 * self._densities[idx, :2]
+            avoidance_v[idx, :] += 1.5 * u_pred + \
+                1.5 * self._densities[idx, :2]
 
         # x_t = animal_states[:,:4]
         # x_t_1 = self._dynamics.step(x_t=x_t,u_t=qdot)
@@ -239,7 +221,6 @@ class MathematicalFlock(Behavior):
                 velocity = self._max_v * utils.unit_vector(velocity)
             # Next expected position
             next_pose = animal_states[idx, 0:2] + velocity * self._dt
-
             animal._velocity = velocity
             animal._pose = next_pose
 
@@ -261,7 +242,7 @@ class MathematicalFlock(Behavior):
                                                                 r=self._sensing_range)
 
         for idx in range(animal_states.shape[0]):
-            # Separation and alignment
+            # Flocking terms
             neighbor_idxs = alpha_adjacency_matrix[idx]
             u_alpha = self._calc_flocking_control(
                 idx=idx, neighbors_idxs=neighbor_idxs,
@@ -305,8 +286,8 @@ class MathematicalFlock(Behavior):
                 target = np.array(pygame.mouse.get_pos())
 
             u_gamma = self._group_objective_term(
-                c1=MathematicalFlock.C1_gamma,
-                c2=MathematicalFlock.C2_gamma,
+                c1=AlternativeFlock.C1_gamma,
+                c2=AlternativeFlock.C2_gamma,
                 pos=target,
                 vel=np.zeros((1, 2)),
                 qi=qi,
@@ -314,7 +295,6 @@ class MathematicalFlock(Behavior):
             u[idx] = u_gamma
         return u
 
-    # Local crowd horizon
     def _local_clustering(self, animal_states: np.ndarray,
                           robot_states: np.ndarray,
                           k: float) -> np.ndarray:
@@ -390,8 +370,8 @@ class MathematicalFlock(Behavior):
                     avoid_vel = 2 * utils.unit_vector(cluster_mean-robot_mean)
 
                 u_gamma = gain * self._group_objective_term(
-                    c1=MathematicalFlock.C1_gamma,
-                    c2=MathematicalFlock.C2_gamma,
+                    c1=AlternativeFlock.C1_gamma,
+                    c2=AlternativeFlock.C2_gamma,
                     pos=target,
                     qi=qi,
                     vel=avoid_vel,
@@ -437,12 +417,12 @@ class MathematicalFlock(Behavior):
             pj = animal_states[neighbors_idxs, 2:4]
 
             alpha_grad = self._gradient_term(
-                c=MathematicalFlock.C2_alpha, qi=qi, qj=qj,
+                c=AlternativeFlock.C2_alpha, qi=qi, qj=qj,
                 r=self._distance,
                 d=self._distance)
 
             alpha_consensus = self._velocity_consensus_term(
-                c=MathematicalFlock.C2_alpha,
+                c=AlternativeFlock.C2_alpha,
                 qi=qi, qj=qj,
                 pi=pi, pj=pj,
                 r=self._distance)
@@ -478,23 +458,23 @@ class MathematicalFlock(Behavior):
             qik = beta_agents[:, :2]
             pik = beta_agents[:, 2:4]
             beta_grad = self._gradient_term(
-                c=MathematicalFlock.C2_beta, qi=qi, qj=qik,
-                r=MathematicalFlock.BETA_RANGE,
-                d=MathematicalFlock.BETA_DISTANCE)
+                c=AlternativeFlock.C2_beta, qi=qi, qj=qik,
+                r=AlternativeFlock.BETA_RANGE,
+                d=AlternativeFlock.BETA_DISTANCE)
 
             beta_consensus = self._velocity_consensus_term(
-                c=MathematicalFlock.C2_beta,
+                c=AlternativeFlock.C2_beta,
                 qi=qi, qj=qik,
                 pi=pi, pj=pik,
-                r=MathematicalFlock.BETA_RANGE)
+                r=AlternativeFlock.BETA_RANGE)
             u_beta = beta_grad + beta_consensus
         return u_beta
 
     def _calc_group_objective_control(self, target: np.ndarray,
                                       qi: np.ndarray, pi: np.ndarray):
         u_gamma = self._group_objective_term(
-            c1=MathematicalFlock.C1_gamma,
-            c2=MathematicalFlock.C2_gamma,
+            c1=AlternativeFlock.C1_gamma,
+            c2=AlternativeFlock.C2_gamma,
             pos=target,
             vel=np.zeros((1, 2)),
             qi=qi,
@@ -520,14 +500,14 @@ class MathematicalFlock(Behavior):
             qid = delta_agents[:, :2]
             pid = delta_agents[:, 2:4]
             delta_grad = self._gradient_term(
-                c=MathematicalFlock.C2_beta, qi=qi, qj=qid,
-                r=MathematicalFlock.BETA_RANGE,
-                d=MathematicalFlock.BETA_DISTANCE)
+                c=AlternativeFlock.C2_beta, qi=qi, qj=qid,
+                r=AlternativeFlock.BETA_RANGE,
+                d=AlternativeFlock.BETA_DISTANCE)
             delta_consensus = self._velocity_consensus_term(
-                c=MathematicalFlock.C2_beta,
+                c=AlternativeFlock.C2_beta,
                 qi=qi, qj=qid,
                 pi=pi, pj=pid,
-                r=MathematicalFlock.BETA_RANGE)
+                r=AlternativeFlock.BETA_RANGE)
             u_delta = delta_grad + delta_consensus
 
         return u_delta
@@ -685,3 +665,28 @@ class MathematicalFlock(Behavior):
         x_t_1[1] = x_t[1] + u_t[0] * np.sin(current_theta) * self._dt
         x_t_1[2] = current_theta + u_t[1] * self._dt
         return x_t_1
+
+    # Nearest neighbor aggregation
+    def _low_aggreggation_nn(self, animal_states: np.ndarray):
+        adj_matrix_d = self._get_alpha_adjacency_matrix(
+            animal_states=animal_states, r=self._distance)
+        adj_matrix_sensing = self._get_alpha_adjacency_matrix(
+            animal_states=animal_states, r=self._sensing_range)
+
+        # Nearest neighbor
+        # Aggregate towards the nearest animals within the sensing range
+        nn = np.empty_like(animal_states[:, :2])
+        for i in range(animal_states.shape[0]):
+            state = animal_states[i, :2]
+            neighbor_states = animal_states[adj_matrix_sensing[i, :], :2]
+            if neighbor_states.shape[0] == 0:
+                nn_row = np.zeros((1, 2))
+                nn = np.vstack((nn, nn_row))
+                continue
+            d = np.linalg.norm(neighbor_states - state, axis=1)
+            smallest_index = np.argmin(d)
+            nn_row = 0.0 * \
+                (neighbor_states[smallest_index, :] - state)
+            nn = np.vstack((nn, nn_row))
+        print(nn)
+        return nn

@@ -5,6 +5,7 @@ import numpy as np
 
 from mrs_playground.utils.utils import *
 
+
 class Plane(object):
     def __init__(self):
         self.normal = np.zeros((2, 1))
@@ -155,17 +156,17 @@ class ORCA():
 
         if is_left:
             # plane.normal = np.array([-x_lc[1], x_lc[0]])
-            plane.normal = np.array([0,-1])
+            plane.normal = np.array([0, -1])
         else:
             # plane.normal = np.array([x_lc[1], -x_lc[0]])
-            plane.normal = np.array([0,1])
+            plane.normal = np.array([0, 1])
         plane.point = animal_centroid + plane.normal * offset
         # print(plane.point)
-        
+
         a, b = plane.normal
         x1, y1 = plane.point
         x2, y2 = xi
-        
+
         v = (x2 - x1, y2 - y1)
         dot_product = a * v[0] + b * v[1]
         if dot_product < 0:
@@ -252,7 +253,8 @@ class MaxDistance:
                          vi: np.ndarray, vj: np.ndarray,
                          ai: float, aj: float,
                          d: float, gamma: float,
-                         relax: bool = False):
+                         relax: bool = False,
+                         relax_weight: float = 1):
         A = np.empty((0, 4))
         # A = np.empty((0, 2))
         b = np.empty((0, 1))
@@ -273,17 +275,19 @@ class MaxDistance:
                 - ((ai + aj) * vij.dot(xij.transpose()))/sqrt_x_d
             h_dot = xij
             row_A = np.append(h_dot, -(ai/(ai + aj))*gamma_h_max)
-            row_A = np.append(row_A, int(relax))
+            row_A = np.append(row_A, relax_weight * int(relax))
             A = np.vstack((A, row_A))
             b = np.vstack([b,  0.0])
 
         return A, b
 
+
 class FormClosure():
     @staticmethod
     def build_constrain(xi: np.ndarray, xj: np.ndarray,
-                         vi: np.ndarray, vj: np.ndarray,):
+                        vi: np.ndarray, vj: np.ndarray,):
         pass
+
 
 def unit_vector(v: np.ndarray):
     return v / np.linalg.norm(v)
@@ -301,13 +305,14 @@ def angle_between_with_direction(v1: np.ndarray, v2: np.ndarray):
     magnitude_v2 = np.linalg.norm(v2)
     cos_theta = dot_product / (magnitude_v1 * magnitude_v2)
     angle_radians = np.arccos(np.clip(cos_theta, -1.0, 1.0))
-    
+
     # Determine the sign of the angle using the cross product
     cross_product = np.cross(v1, v2)
     if cross_product < 0:
         angle_radians = -angle_radians
-    
+
     return angle_radians
+
 
 def simple_vector_rotate(v: np.ndarray, theta: float):
     cs = np.cos(theta)
