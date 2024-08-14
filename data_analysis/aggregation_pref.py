@@ -51,7 +51,7 @@ import math
 # HIGH AGGREGATION PREF
 # 4 robots
 # CBF
-directory_path = "data/aggregation_pref/success_rate/high/4/cbf/"
+directory_path = "data/aggregation_pref/success_rate/low/4/cbf/"
 all_cbf_high_4_data = []
 # Loop through all files in the directory
 for filename in os.listdir(directory_path):
@@ -67,14 +67,13 @@ for data in all_cbf_high_4_data:
     if len(data['mean_dist_range']) < 6000:
         cbf_high_4_mean_dist_range.append(np.mean(data['mean_dist_range']))
         cbf_high_4_exec_time.append(len(data['mean_dist_range']))
-        plt.plot(data['mean_dist_range'])
 cbf_high_4_success_rate = len(cbf_high_4_exec_time) / len(all_cbf_high_4_data)
 # print(len(cbf_high_4_exec_time))
 # print(len(all_cbf_high_4_data))
 
 # OUTMOST
 # 4 robots
-directory_path = "data/aggregation_pref/success_rate/high/4/outmost/"
+directory_path = "data/aggregation_pref/success_rate/low/4/outmost/"
 all_outmost_high_4_data = []
 # Loop through all files in the directory
 for filename in os.listdir(directory_path):

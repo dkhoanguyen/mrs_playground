@@ -20,8 +20,8 @@ herding_apf:
     Cr: 3
     Cv: 1.5
     Co: 1.7
-    distance_to_target: 135.0
-    interagent_spacing: 140.0
+    distance_to_target: 140.0
+    interagent_spacing: 160.0
     obstacle_range: 40.0
     sensing_range: 1000.0
     herding_target: [350, 350]
@@ -49,7 +49,7 @@ herding_cbf:
     min_robot_d: 170
     max_robot_d: 180
     min_animal_d: 150
-    max_animal_d: 160
+    max_animal_d: 170
     collision_avoidance_d: 120
     converge_std: 20
     herding_target: [350, 350]

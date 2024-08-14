@@ -15,8 +15,8 @@ def main():
 
     for i in range(100):
         # run_cbf(i, args.gui)
-        # run_apf(i, args.gui)
-        run_outmost(i, args.gui)
+        run_apf(i, args.gui)
+        # run_outmost(i, args.gui)
 
 
 if __name__ == '__main__':

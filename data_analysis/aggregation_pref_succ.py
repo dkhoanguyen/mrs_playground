@@ -5,11 +5,14 @@ import numpy as np
 import pandas as pd
 import pickle
 import matplotlib.pyplot as plt
+import matplotlib
 import matplotlib.patches as mpatches
 import math
 
-pre_cbf_fail = 8
-pre_outmost_fail = 0
+# Parameters
+box_width = 0.25
+threshold = 5000
+offset = 0.2
 
 
 # LOW AGGREGATION PREF
@@ -28,10 +31,11 @@ for filename in os.listdir(directory_path):
 cbf_low_4_mean_dist_range = []
 cbf_low_4_exec_time = []
 for data in all_cbf_low_4_data:
-    if len(data['mean_dist_range']) < 6000:
+    if len(data['mean_dist_range']) < threshold:
         cbf_low_4_mean_dist_range.append(
-            np.mean(data['mean_dist_range']) * 100)
+            np.mean(data['mean_dist_range']))
         cbf_low_4_exec_time.append(len(data['mean_dist_range']))
+cbf_low_4_success_rate = len(cbf_low_4_exec_time) / len(all_cbf_low_4_data)
 
 # OUTMOST
 # 4 robots
@@ -48,10 +52,12 @@ for filename in os.listdir(directory_path):
 outmost_low_4_mean_dist_range = []
 outmost_low_4_exec_time = []
 for data in all_outmost_low_4_data:
-    if len(data['mean_dist_range']) < 6000:
+    if len(data['mean_dist_range']) < threshold:
         outmost_low_4_exec_time.append(len(data['mean_dist_range']))
         outmost_low_4_mean_dist_range.append(
-            np.mean(data['mean_dist_range'])*100)
+            np.mean(data['mean_dist_range']))
+outmost_low_4_success_rate = len(
+    outmost_low_4_exec_time) / len(all_outmost_low_4_data)
 
 # HIGH AGGREGATION PREF
 # 4 robots
@@ -69,7 +75,7 @@ for filename in os.listdir(directory_path):
 cbf_high_4_mean_dist_range = []
 cbf_high_4_exec_time = []
 for data in all_cbf_high_4_data:
-    if len(data['mean_dist_range']) < 6000:
+    if len(data['mean_dist_range']) < threshold:
         cbf_high_4_mean_dist_range.append(np.mean(data['mean_dist_range']))
         cbf_high_4_exec_time.append(len(data['mean_dist_range']))
 cbf_high_4_success_rate = len(cbf_high_4_exec_time) / len(all_cbf_high_4_data)
@@ -91,30 +97,98 @@ outmost_high_4_exec_time = []
 for data in all_outmost_high_4_data:
     outmost_high_4_mean_dist_range.append(
         np.mean(data['mean_dist_range']))
-    if len(data['mean_dist_range']) < 6000:
+    if len(data['mean_dist_range']) < threshold:
         outmost_high_4_exec_time.append(len(data['mean_dist_range']))
 outmost_high_4_success_rate = len(
     outmost_high_4_exec_time) / len(all_outmost_high_4_data)
 
-# Create figure and axis objects
-fig, ax1 = plt.subplots()
-fig.set_size_inches(7, 6)
-positions = np.array([1, 3])
-offset = 0.3
-bp = ax1.boxplot([cbf_low_4_mean_dist_range, cbf_low_4_exec_time],
-                 positions=positions - offset, vert=True, zorder=2, patch_artist=True)
-for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
-    plt.setp(bp[element], color='black')
-for patch in bp['boxes']:
+
+# group data
+# Group data by algorithm and metric
+data_low_dist = [cbf_low_4_mean_dist_range, cbf_high_4_mean_dist_range]
+data_low_time = [cbf_low_4_exec_time, cbf_high_4_exec_time]
+data_low_success = [cbf_low_4_success_rate, cbf_high_4_success_rate]
+
+
+data_high_dist = [outmost_low_4_mean_dist_range,
+                  outmost_high_4_mean_dist_range]
+data_high_time = [outmost_low_4_exec_time, outmost_high_4_exec_time]
+data_high_success = [outmost_low_4_success_rate, outmost_high_4_success_rate]
+
+
+# Create figure and axis
+fig, ax1 = plt.subplots(figsize=(8, 7))
+positions = np.array([1, 2, 3.5, 4.5, 7, 8])
+# Boxplot for Algorithm 1
+bp1_dist = ax1.boxplot(
+    data_low_dist, positions=positions[0:2] - offset, patch_artist=True, widths=box_width)
+for patch in bp1_dist['boxes']:
     patch.set(facecolor='lightskyblue', edgecolor='black')
 
+# Boxplot for Algorithm 2 using twinx
 ax2 = ax1.twinx()
-bp2 = ax1.boxplot([outmost_low_4_mean_dist_range, outmost_low_4_exec_time],
-                  positions=positions + offset, vert=True, zorder=2, patch_artist=True)
-for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
-    plt.setp(bp2[element], color='black')
-for patch in bp2['boxes']:
+bp2_dist = ax2.boxplot(
+    data_high_dist, positions=positions[0:2] + offset, patch_artist=True, widths=box_width)
+for patch in bp2_dist['boxes']:
     patch.set(facecolor='salmon', edgecolor='black')
 
-plt.xticks([1, 3], ["Low pref", "High pref"])
+ax3 = ax1.twinx()
+bp1_time = ax3.boxplot(
+    data_low_time, positions=positions[2:4] - offset, patch_artist=True, widths=box_width)
+for patch in bp1_time['boxes']:
+    patch.set(facecolor='lightgreen', edgecolor='black')
+
+ax4 = ax1.twinx()
+bp2_time = ax4.boxplot(
+    data_high_time, positions=positions[2:4] + offset, patch_artist=True, widths=box_width)
+for patch in bp2_time['boxes']:
+    patch.set(facecolor='orange', edgecolor='black')
+
+# ax5 = ax1.twinx()
+# bp1_success = ax5.bar(x=positions[4:] - offset,
+#                       height=data_low_success, width=0.25, zorder=1)
+# ax6 = ax1.twinx()
+# bp2_success = ax6.bar(x=positions[4:] + offset,
+#                       height=data_high_success, width=0.25, zorder=1)
+
+# Set the same scale for both y-axes if necessary
+ylim_min = min(ax1.get_ylim()[0], ax2.get_ylim()[0])
+ylim_max = max(ax1.get_ylim()[1], ax2.get_ylim()[1])
+ax1.set_ylim(ylim_min, ylim_max)
+ax2.set_ylim(ylim_min, ylim_max)
+
+ylim_min = min(ax3.get_ylim()[0], ax4.get_ylim()[0])
+ylim_max = max(ax3.get_ylim()[1], ax4.get_ylim()[1])
+ax3.set_ylim(ylim_min, ylim_max * 1.2)
+ax4.set_ylim(ylim_min, ylim_max * 1.2)
+
+ax2.set_yticklabels([])
+ax4.set_yticklabels([])
+# ax6.set_ylim(0, 1.1)
+
+
+for element in ['whiskers', 'fliers', 'means', 'medians', 'caps']:
+    plt.setp(bp1_dist[element], color='black')
+    plt.setp(bp2_dist[element], color='black')
+    plt.setp(bp1_time[element], color='black')
+    plt.setp(bp2_time[element], color='black')
+
+
+# X-axis labels
+plt.xticks([1, 2, 3.5, 4.5], ['Low\naggregation', 'High\naggregation',
+           'Low\naggregation', 'High\naggregation',])
+
+# Custom legend
+legend_patches = [
+    mpatches.Patch(color='lightskyblue',
+                   label='CBF (Ours) - Mean distribution range'),
+    mpatches.Patch(color='lightgreen',
+                   label='CBF (Ours) - Mean completion time'),
+    mpatches.Patch(
+        color='salmon', label='Outmost push - Mean distribution range'),
+    mpatches.Patch(color='orange', label='Outmost push - Mean completion time')
+]
+plt.legend(handles=legend_patches, loc='upper right')
+
+plt.title("Comparison of Mean Distribution Range and Execution Time")
 plt.show()

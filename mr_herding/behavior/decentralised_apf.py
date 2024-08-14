@@ -122,7 +122,7 @@ class DecentralisedAPF(Behavior):
 
         alpha_adjacency_matrix = self._get_alpha_adjacency_matrix(
             all_shepherd_states,
-            r=self._interagent_spacing + 15)
+            r=self._interagent_spacing + 30)
         neighbor_shepherd_idxs = alpha_adjacency_matrix[0]
         dr_to_nearest_edge = np.Inf
         mean_norm_r_to_rj = np.Inf

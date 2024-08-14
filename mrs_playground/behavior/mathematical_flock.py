@@ -182,7 +182,6 @@ class MathematicalFlock(Behavior):
         # Find distribution range
         all_distribution_range = np.linalg.norm(
             animal_states[:, :2]-herd_mean, axis=1)
-        distribution_range_outmost = all_distribution_range[all_distribution_range > 130]
 
         # Calculate the mean and standard deviation of the data
         mean = np.mean(all_distribution_range)
@@ -190,15 +189,17 @@ class MathematicalFlock(Behavior):
 
         # Calculate the Z-scores
         z_scores = (all_distribution_range - mean) / std_dev
-        all_distribution_range = all_distribution_range[all_distribution_range < 250]
+        all_distribution_range = all_distribution_range[all_distribution_range < 200]
 
         mean_distribution_range = np.average(all_distribution_range)
         # print(mean_distribution_range)
         self._mean_dist_range.append(mean_distribution_range)
 
-        print(mean_distribution_range)
+        animal_goal = np.linalg.norm(
+            animal_states[:, :2] - self._target, axis=1)
+        # print(animal_goal[animal_goal <= 150].shape[0])
 
-        if np.linalg.norm(herd_mean - self._target) < 100 and mean_distribution_range <= 100:
+        if mean_distribution_range <= 120 and animal_goal[animal_goal <= 150].shape[0] >= np.floor(0.9 * len(self._animals)):
             self._is_at_target = True
 
         robot: Robot
@@ -218,7 +219,7 @@ class MathematicalFlock(Behavior):
         self._densities = self._herd_density(animal_states=animal_states,
                                              robot_states=robot_states)
 
-        qdot = flocking + 0.01 * local_clustering
+        qdot = flocking + 0.0 * local_clustering
 
         avoidance_v = np.zeros_like(animal_states[:, 2:4])
         for idx in range(animal_states.shape[0]):
@@ -226,7 +227,7 @@ class MathematicalFlock(Behavior):
             u_pred = self._predator_avoidance_term(
                 si=qi, r=self._danger_range, k=4)
             avoidance_v[idx, :] += 0.25 * u_pred + \
-                0.1 * self._densities[idx, :2]
+                0.25 * self._densities[idx, :2]
 
         # x_t = animal_states[:,:4]
         # x_t_1 = self._dynamics.step(x_t=x_t,u_t=qdot)
@@ -319,7 +320,7 @@ class MathematicalFlock(Behavior):
                           robot_states: np.ndarray,
                           k: float) -> np.ndarray:
         adj_matrix = self._get_alpha_adjacency_matrix(
-            animal_states=animal_states, r=self._distance)
+            animal_states=animal_states, r=self._distance * 1.5)
         graph = nx.Graph(adj_matrix)
 
         clusters_idxs = [graph.subgraph(c).copy()
