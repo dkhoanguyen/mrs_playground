@@ -1,76 +1,45 @@
-# !/usr/bin/python3
-
-import os
 import numpy as np
-import pandas as pd
-import pickle
 import matplotlib.pyplot as plt
-import matplotlib
-import matplotlib.patches as mpatches
-import math
 
-# Example data
-alg1_setup1_dist = np.random.normal(100, 10, 100)
-alg1_setup1_time = np.random.normal(200, 20, 100)
-alg1_setup2_dist = np.random.normal(110, 12, 100)
-alg1_setup2_time = np.random.normal(210, 18, 100)
+# Example data: trajectories represented as heatmaps
+# Assuming a grid of size 100x100 where trajectories are recorded
+trajectory1 = np.zeros((100, 100))
+trajectory2 = np.zeros((100, 100))
 
-alg2_setup1_dist = np.random.normal(95, 15, 100)
-alg2_setup1_time = np.random.normal(190, 25, 100)
-alg2_setup2_dist = np.random.normal(105, 10, 100)
-alg2_setup2_time = np.random.normal(205, 22, 100)
+# Simulate some trajectory data (for example purposes)
+# Robot 1 trajectory
+trajectory1[20:80, 30:35] += 1
+trajectory1[40:45, 30:70] += 1
 
-# Group data by algorithm and metric
-data_alg1_dist = [alg1_setup1_dist, alg1_setup2_dist]
-data_alg1_time = [alg1_setup1_time, alg1_setup2_time]
+# Robot 2 trajectory
+trajectory2[60:90, 10:15] += 1
+trajectory2[10:15, 50:90] += 1
 
-data_alg2_dist = [alg2_setup1_dist, alg2_setup2_dist]
-data_alg2_time = [alg2_setup1_time, alg2_setup2_time]
+# Create the figure and axis
+fig, ax = plt.subplots()
 
-# Create figure and axis
-fig, ax1 = plt.subplots(figsize=(10, 7))
-positions = np.array([1, 2, 4, 5])
-offset = 0.2
+# First heatmap (Robot 1) with the first colormap
+# Adjust alpha for transparency
+heatmap1 = ax.imshow(trajectory1, cmap='Blues', alpha=0.7)
 
-# Boxplot for Algorithm 1
-bp1_dist = ax1.boxplot(
-    data_alg1_dist, positions=positions[:2] - offset, patch_artist=True)
-for patch in bp1_dist['boxes']:
-    patch.set(facecolor='lightskyblue', edgecolor='black')
-bp1_time = ax1.boxplot(
-    data_alg1_time, positions=positions[2:] - offset, patch_artist=True)
-for patch in bp1_time['boxes']:
-    patch.set(facecolor='lightgreen', edgecolor='black')
+# Second heatmap (Robot 2) with the second colormap
+# Adjust alpha for transparency
+heatmap2 = ax.imshow(trajectory2, cmap='Reds', alpha=0.7)
 
-# Boxplot for Algorithm 2 using twinx
-ax2 = ax1.twinx()
-bp2_dist = ax2.boxplot(
-    data_alg2_dist, positions=positions[:2] + offset, patch_artist=True)
-for patch in bp2_dist['boxes']:
-    patch.set(facecolor='salmon', edgecolor='black')
-bp2_time = ax2.boxplot(
-    data_alg2_time, positions=positions[2:] + offset, patch_artist=True)
-for patch in bp2_time['boxes']:
-    patch.set(facecolor='orange', edgecolor='black')
+# Add colorbars
+cbar1 = fig.colorbar(heatmap1, ax=ax, orientation='vertical',
+                     fraction=0.046, pad=0.04)
+cbar2 = fig.colorbar(heatmap2, ax=ax, orientation='vertical',
+                     fraction=0.046, pad=0.04)
 
-# Set the same scale for both y-axes if necessary
-ylim_min = min(ax1.get_ylim()[0], ax2.get_ylim()[0])
-ylim_max = max(ax1.get_ylim()[1], ax2.get_ylim()[1])
-ax1.set_ylim(ylim_min, ylim_max)
-ax2.set_ylim(ylim_min, ylim_max)
+# Set labels for colorbars
+cbar1.set_label('Robot 1 Trajectory')
+cbar2.set_label('Robot 2 Trajectory')
 
-# X-axis labels
-plt.xticks([1, 2, 4, 5], ['Setup 1 (Dist)', 'Setup 2 (Dist)',
-           'Setup 1 (Time)', 'Setup 2 (Time)'])
+# Set plot title and labels
+ax.set_title('Overlayed Robot Trajectories')
+ax.set_xlabel('X Coordinate')
+ax.set_ylabel('Y Coordinate')
 
-# Custom legend
-legend_patches = [
-    mpatches.Patch(color='lightskyblue', label='Algorithm 1 - Dist'),
-    mpatches.Patch(color='lightgreen', label='Algorithm 1 - Time'),
-    mpatches.Patch(color='salmon', label='Algorithm 2 - Dist'),
-    mpatches.Patch(color='orange', label='Algorithm 2 - Time')
-]
-plt.legend(handles=legend_patches, loc='upper right')
-
-plt.title("Comparison of Mean Distribution Range and Execution Time")
+# Show plot
 plt.show()

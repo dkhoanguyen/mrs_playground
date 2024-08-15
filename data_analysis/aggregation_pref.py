@@ -51,7 +51,7 @@ import math
 # HIGH AGGREGATION PREF
 # 4 robots
 # CBF
-directory_path = "data/aggregation_pref/success_rate/low/4/cbf/"
+directory_path = "data/aggregation_pref/success_rate/low/4/apf/"
 all_cbf_high_4_data = []
 # Loop through all files in the directory
 for filename in os.listdir(directory_path):
@@ -60,13 +60,14 @@ for filename in os.listdir(directory_path):
         with open(file_path, 'rb') as file:
             data = pickle.load(file)
             all_cbf_high_4_data.append(data)
-
 cbf_high_4_mean_dist_range = []
 cbf_high_4_exec_time = []
 for data in all_cbf_high_4_data:
-    if len(data['mean_dist_range']) < 6000:
+    if (data['mean_dist_range'][-1] <= 110) and len(data['mean_dist_range']) < 6000:
         cbf_high_4_mean_dist_range.append(np.mean(data['mean_dist_range']))
         cbf_high_4_exec_time.append(len(data['mean_dist_range']))
+    # if (data['mean_dist_range'][-1] <= 110) and len(data['mean_dist_range']) < 6004:
+    #     plt.plot(data['mean_dist_range'])
 cbf_high_4_success_rate = len(cbf_high_4_exec_time) / len(all_cbf_high_4_data)
 # print(len(cbf_high_4_exec_time))
 # print(len(all_cbf_high_4_data))
@@ -100,7 +101,7 @@ fig, ax1 = plt.subplots()
 fig.set_size_inches(7, 6)
 positions = np.array([1, 3])
 offset = 0.3
-bp = ax1.boxplot([outmost_high_4_exec_time, cbf_high_4_exec_time],
+bp = ax1.boxplot([cbf_high_4_mean_dist_range, outmost_high_4_mean_dist_range],
                  positions=positions - offset, vert=True, zorder=2, patch_artist=True)
 for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
     plt.setp(bp[element], color='black')

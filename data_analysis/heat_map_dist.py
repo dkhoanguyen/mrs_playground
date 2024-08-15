@@ -41,7 +41,7 @@ def cmap_map(function, cmap):
 
 
 normalization_method = 'none'
-target = 'animal'
+target = 'robot'
 range_lim = 5000
 light_jet = cmap_map(lambda x: x, matplotlib.cm.jet)
 
@@ -83,11 +83,6 @@ for filename in os.listdir(directory_path):
             data = pickle.load(file)
             all_cbf_low_4_data.append(data)
 
-all_x = np.empty((0, ))
-all_y = np.empty((0, ))
-
-all_animal_x = np.empty((0, ))
-all_animal_y = np.empty((0, ))
 
 # Initialize lists to collect all x and y coordinates
 all_x = []
@@ -186,11 +181,6 @@ for filename in os.listdir(directory_path):
             data = pickle.load(file)
             all_cbf_low_4_data.append(data)
 
-all_x = np.empty((0, ))
-all_y = np.empty((0, ))
-
-all_animal_x = np.empty((0, ))
-all_animal_y = np.empty((0, ))
 
 # Initialize lists to collect all x and y coordinates
 all_x = []
@@ -307,11 +297,6 @@ for filename in os.listdir(directory_path):
             data = pickle.load(file)
             all_cbf_low_4_data.append(data)
 
-all_x = np.empty((0, ))
-all_y = np.empty((0, ))
-
-all_animal_x = np.empty((0, ))
-all_animal_y = np.empty((0, ))
 
 # Initialize lists to collect all x and y coordinates
 all_x = []
@@ -410,11 +395,6 @@ for filename in os.listdir(directory_path):
             data = pickle.load(file)
             all_cbf_low_4_data.append(data)
 
-all_x = np.empty((0, ))
-all_y = np.empty((0, ))
-
-all_animal_x = np.empty((0, ))
-all_animal_y = np.empty((0, ))
 
 # Initialize lists to collect all x and y coordinates
 all_x = []
@@ -525,5 +505,5 @@ ax1.legend(handles=handles,
 plt.subplots_adjust(wspace=0.005, hspace=0.005)
 plt.tight_layout(w_pad=0.005, h_pad=0.005)
 
-plt.savefig('heatmap.pdf', format='pdf')
-# plt.show()
+# plt.savefig('heatmap.pdf', format='pdf')
+plt.show()
