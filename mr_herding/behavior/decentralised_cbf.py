@@ -133,8 +133,9 @@ class DecentralisedCBF(Behavior):
         # Edge following
         # Need to rework this behavior but this is for future work
         u_edge_following = self._edge_following(
-            xi=xi, xj=xj, vi=velocity, d=self._min_animal_d, gain=10.0)
-        u_nom += u_edge_following
+            xi=xi, xj=xj, vi=velocity, d=0.99*self._min_animal_d, gain=10.0)
+        u_nom += u_edge_following - 0.5 * (velocity -
+                                           np.mean(animal_states[:, 2:4], axis=0))
 
         # CBF Constraints
         # Robot-animal formation
@@ -150,6 +151,7 @@ class DecentralisedCBF(Behavior):
         if np.all(reach_consensus == 1):
             enforce_formation = True
 
+        enforce_formation = self._converge_to_animal
         if enforce_formation:
             # Estimate overall animal heading
             in_vision_animal_pos = np.average(
@@ -164,18 +166,21 @@ class DecentralisedCBF(Behavior):
             theta = 2 * angle_to_target
             if np.abs(theta) > np.pi/2:
                 theta = np.sign(theta) * np.pi/2
+            if np.abs(angle_to_target) < 0.2:
+                theta = 0.0
+
+            u_pot = (animal_centroid - pose)
 
             # If heading is incorrect, accelerate to adjust heading
-            u_nom_flipped = np.array([[np.cos(theta), -np.sin(theta)],
-                                      [np.sin(theta), np.cos(theta)]]).dot(u_nom.reshape(2, 1))
+            v_nom_flipped = 30 * theta * np.array([[np.cos(theta), -np.sin(theta)],
+                                                  [np.sin(theta), np.cos(theta)]]).dot(utils.unit_vector(u_pot).reshape(2, 1))
             # if self._is_leaf:
-            u_nom = u_nom_flipped.reshape((2,))
+            u_nom += (v_nom_flipped.reshape((2,)) - velocity)
 
-            # Move forward target if angle is aligned
-            if abs(angle_to_target) < 0.25:
-                u_target = self._target - state[:2]
-                u_nom = u_nom + 2 * u_target
-
+            # # # Move forward target if angle is aligned
+            #
+            #     # u_target = self._target - state[:2]
+            #     u_nom +=
         # Scale down u
         if np.linalg.norm(u_nom) > self._max_u:
             u_nom = self._max_u * utils.unit_vector(u_nom)
@@ -252,15 +257,16 @@ class DecentralisedCBF(Behavior):
         u = np.zeros(2).astype(np.float64)
         v_sum = np.zeros(2).astype(np.float64)
         for i in range(xj.shape[0]):
-            xij = xi - xj[i, :]
             p = GradPotentionFunc.const_attract_fuc(xi=xi,
-                                                    xj=xj,
+                                                    xj=xj[i, :2],
+                                                    vi=vi,
                                                     d=d)
             # Obtain v
-            v = gain * p * utils.unit_vector(xij)
+            v = p
             # P Controller to obtain control u
             v_sum += v
-        u = self._max_u * (v_sum - vi)
+        # u = self._max_u * (v_sum - vi)
+        u = gain * v_sum
         return u
 
     def _repulsion(self, xi: np.ndarray, xj: np.ndarray,
@@ -341,8 +347,8 @@ class DecentralisedCBF(Behavior):
             relax=relax_d_max,
             relax_weight=1.0)
 
-        A = np.vstack((A, A_dmax))
-        b = np.vstack((b, b_dmax))
+        # A = np.vstack((A, A_dmax))
+        # b = np.vstack((b, b_dmax))
 
         return A, b
 

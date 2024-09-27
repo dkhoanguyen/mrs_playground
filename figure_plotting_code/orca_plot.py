@@ -30,9 +30,9 @@ plt.plot(pA[0], pA[1], 'ko')  # Point A
 plt.plot(pB[0], pB[1], 'ko')  # Point B
 
 # Annotating the points
-plt.text(pA[0] + 0.1, pA[1] - 0.2, '  $\mathbf{p}_i$', fontsize=14,
+plt.text(pA[0] + 0.1, pA[1] - 0.2, '  $\mathbf{x}_i$', fontsize=14,
          verticalalignment='bottom', horizontalalignment='right', weight='bold')
-plt.text(pB[0] - 0.05, pB[1], '  $\mathbf{p}_j$', fontsize=14,
+plt.text(pB[0] - 0.05, pB[1], '  $\mathbf{x}_j$', fontsize=14,
          verticalalignment='bottom', horizontalalignment='right', weight='bold')
 
 # Drawing radius lines
@@ -86,4 +86,4 @@ ax.axis('off')
 ax.set_aspect('equal', 'box')
 
 
-plt.savefig('orca_plot.pdf', format='pdf')
+# plt.savefig('orca_plot.pdf', format='pdf')

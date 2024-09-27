@@ -2,7 +2,7 @@ math_flock:
   params:
     follow_cursor: false
     sensing_range: 70
-    danger_range: 155
+    danger_range: 150
     initial_consensus: [800, 350]
     max_v: 5
     dt: 0.1

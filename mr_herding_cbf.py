@@ -185,8 +185,8 @@ def run_cbf(run_id: int = 0, gui: bool = False):
     while env.ok:
         env.step()
         env.render()
-    env.save_data(data_name=f"cbf_{str(run_id)}",
-                  path="data/aggregation_pref/success_rate/low/4/cbf/")
+    # env.save_data(data_name=f"cbf_{str(run_id)}",
+    #               path="data/aggregation_pref/success_rate/low_cluster/4/cbf/")
 
 
 if __name__ == '__main__':

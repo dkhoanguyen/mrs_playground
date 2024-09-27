@@ -199,7 +199,7 @@ class MathematicalFlock(Behavior):
             animal_states[:, :2] - self._target, axis=1)
         # print(animal_goal[animal_goal <= 150].shape[0])
 
-        if mean_distribution_range <= 120 and animal_goal[animal_goal <= 150].shape[0] >= np.floor(0.9 * len(self._animals)):
+        if mean_distribution_range <= 120 and animal_goal[animal_goal <= 135].shape[0] >= np.floor(0.9 * len(self._animals)):
             self._is_at_target = True
 
         robot: Robot
@@ -209,8 +209,8 @@ class MathematicalFlock(Behavior):
             robot_states = np.vstack(
                 (robot_states, robot.state[:4]))
 
-        global_clustering = self._global_clustering(
-            animal_states, robot_states)
+        # global_clustering = self._global_clustering(
+        #     animal_states, robot_states)
         local_clustering = self._local_clustering(
             animal_states, robot_states, k=1)
 
@@ -219,7 +219,7 @@ class MathematicalFlock(Behavior):
         self._densities = self._herd_density(animal_states=animal_states,
                                              robot_states=robot_states)
 
-        qdot = flocking + 0.0 * local_clustering
+        qdot = flocking + 1.0 * local_clustering
 
         avoidance_v = np.zeros_like(animal_states[:, 2:4])
         for idx in range(animal_states.shape[0]):
@@ -227,7 +227,7 @@ class MathematicalFlock(Behavior):
             u_pred = self._predator_avoidance_term(
                 si=qi, r=self._danger_range, k=4)
             avoidance_v[idx, :] += 0.25 * u_pred + \
-                0.25 * self._densities[idx, :2]
+                1.0 * self._densities[idx, :2]
 
         # x_t = animal_states[:,:4]
         # x_t_1 = self._dynamics.step(x_t=x_t,u_t=qdot)
@@ -315,12 +315,12 @@ class MathematicalFlock(Behavior):
             u[idx] = u_gamma
         return u
 
-    # Local crowd horizon
     def _local_clustering(self, animal_states: np.ndarray,
                           robot_states: np.ndarray,
                           k: float) -> np.ndarray:
+        all_gamma = np.zeros((animal_states.shape[0], 2))
         adj_matrix = self._get_alpha_adjacency_matrix(
-            animal_states=animal_states, r=self._distance * 1.5)
+            animal_states=animal_states, r=self._distance * 1.1)
         graph = nx.Graph(adj_matrix)
 
         clusters_idxs = [graph.subgraph(c).copy()
@@ -351,7 +351,7 @@ class MathematicalFlock(Behavior):
             cluster_indx_list.append(cluster_indx)
 
         # Perform local flocking with local cluster
-        all_gamma = np.zeros((animal_states.shape[0], 2))
+
         for cluster_indx, cluster in enumerate(clusters):
             if len(clusters) == 1:
                 continue
@@ -388,7 +388,8 @@ class MathematicalFlock(Behavior):
                         total_predator_in_range += 1
                 if total_predator_in_range > 0:
                     robot_mean = robot_mean / total_predator_in_range
-                    avoid_vel = 2 * utils.unit_vector(cluster_mean-robot_mean)
+                    avoid_vel = self._max_v * \
+                        utils.unit_vector(cluster_mean-robot_mean)
 
                 u_gamma = gain * self._group_objective_term(
                     c1=MathematicalFlock.C1_gamma,
@@ -401,7 +402,28 @@ class MathematicalFlock(Behavior):
                 # if total_predator_in_range > 0:
                 #     all_gamma[this_indx, :] = u_gamma + 2 * self._densities[idx,:]
                 # else:
-                all_gamma[this_indx, :] = u_gamma
+                all_gamma[this_indx, :] = 0.0 * u_gamma
+
+        for i in range(adj_matrix.shape[0]):
+            total_predator_in_range = 0
+            qi = animal_states[i, :2]
+            for shepherd_indx in range(robot_states.shape[0]):
+                si = robot_states[shepherd_indx, :2]
+                if np.linalg.norm(qi - si) <= self._danger_range:
+                    total_predator_in_range += 1
+                    # Collapse the vector
+            adj_vec = adj_matrix[i, :]
+            # if sum(adj_vec) == 0 and total_predator_in_range > 0:
+            #     # No flocking ?
+            #     continue
+            # elif sum(adj_vec) > 0 and total_predator_in_range == 0:
+            #     all_gamma[i, :] = 10 * \
+            #         (np.zeros((1, 2)) - animal_states[i, 2:4])
+
+            if sum(adj_vec) == 0:
+                all_gamma[i, :] = 0.02 * \
+                    (np.zeros((1, 2)) - animal_states[i, 2:4])
+
         return all_gamma
 
     def _calc_remain_in_boundary_control(self, animal_states: Animal, boundary: np.ndarray, k: float):

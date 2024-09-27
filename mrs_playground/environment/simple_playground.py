@@ -87,8 +87,8 @@ class SimplePlayground(object):
         behavior: Behavior
         for behavior in self._behaviors:
             behavior.update(events)
-            if behavior._is_at_target:
-                self._running = False
+            # if behavior._is_at_target:
+            #     self._running = False
 
         # Grab all states
         all_states = {}
